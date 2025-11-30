@@ -13,10 +13,10 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
-from math import exp
+import math
 from utils.general_utils import knn_pcl
+from math import exp
 # from pytorch3d.loss import chamfer_distance
-from pytorch3d.ops import knn_points
 
 def l1_loss(network_output, gt, weight=1):
     return torch.abs((network_output - gt) * weight).mean()

@@ -25,6 +25,10 @@ except ImportError:
 import ot
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
+    
+
+    colorvar_weights_upscaled = None
+
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset)
@@ -120,8 +124,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gt_image_fullsize = viewpoint_cam_fullsize.get_gtImage(background, use_mask)
         _, gt_im_H, gt_im_W = gt_image.shape
         gt_transi = viewpoint_cam.get_gtTransi() if viewpoint_cam.get_gtTransi() is not None else None
-        if gt_transi is None: 
-            breakpoint() 
+        #if gt_transi is None: 
+        #    breakpoint() 
         mask_vis = (opac.detach() > 1e-5)
         mask_vis_fullsize = (opac_fullsize.detach() > 1e-5)
         normal = torch.nn.functional.normalize(normal, dim=0) * mask_vis
@@ -133,6 +137,14 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
 
         # ===== transient work =====
+
+
+        print("gt_transi")
+        print(gt_transi)
+        print("opac buffer nomask")
+        print(opac_buffer_nomask)
+        print("only use ")
+        print(opt.only_use)
 
         if gt_transi is not None and depth_buffer_nomask is not None and opac_buffer_nomask is not None and opt.only_use != "rgb": 
 
@@ -206,7 +218,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             loss_kwargs = {}
 
         Ll1 = l1_loss(image, gt_image, **loss_kwargs) 
-        ssim_weight = colorvar_weights_upscaled.mean()
+        if colorvar_weights_upscaled is not None:
+    	    ssim_weight = colorvar_weights_upscaled.mean()
+        else:
+    	    ssim_weight = 1.0
         loss_rgb = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image) * ssim_weight)
         
         loss_mask = (opac * (1 - pool(mask_gt))).mean()
