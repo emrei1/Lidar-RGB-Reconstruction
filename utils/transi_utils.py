@@ -52,29 +52,17 @@ def total_variation_loss(depth):
     return weighted_diff_h.mean() + weighted_diff_w.mean()
 
 def convolve_histograms(hists: torch.Tensor, pulse: torch.Tensor) -> torch.Tensor:
-    # Expect hists: (bins=64, H=32, W=32)
-    bins, H, W = hists.shape
-    if bins != 64:
-        raise ValueError(f"Expected 64 bins, got {bins}")
-
-    # Flatten pixels but keep 64 time bins for convolution
-    hists_flat = hists.reshape(H * W, 1, bins)  # (1024, 1, 64)
-    pulse = pulse.view(1, 1, bins)               # (1, 1, 64)
-
-    # Convolve along the time/bin axis
-    conv = torch.nn.functional.conv1d(hists_flat, pulse, padding=0)  # (1024, 1, 1)
-    return conv.squeeze(1).reshape(H, W)  # (32, 32) — back to spatial grid
-
+    hists = hists.view(128, -1).transpose(0, 1).unsqueeze(1)
+    hists = torch.nn.functional.pad(hists, (128, 128))
+    pulse = pulse.view(1, 1, -1)
+    conv_result = torch.nn.functional.conv1d(hists, pulse, padding=0)
+    conv_result = conv_result[:, :, :128].squeeze(1).transpose(0, 1).view(128, 8, 8)
+    return conv_result
 
 def convolve_histograms_64(hists: torch.Tensor, pulse: torch.Tensor) -> torch.Tensor:
-    bins, H, W = hists.shape
-    if bins != 64:
-        raise ValueError(f"Expected 64 bins, got {bins}")
-
-    # Convolution happens on time bins axis, returning flat (1024 pixels × 64 bins)
-    hists_flat = hists.reshape(H * W, 1, bins)  # (1024,1,64)
-    pulse = pulse.view(1, 1, bins)
-
-    conv = torch.nn.functional.conv1d(hists_flat, pulse, padding=0)
-    return conv.squeeze(1).squeeze(1).reshape(bins, 1024)  # (64,1024)
-
+    hists = hists.view(128, -1).transpose(0, 1).unsqueeze(1)
+    hists = torch.nn.functional.pad(hists, (128, 128))
+    pulse = pulse.view(1, 1, -1)
+    conv_result = torch.nn.functional.conv1d(hists, pulse, padding=0)
+    conv_result = conv_result[:, :, :128].squeeze(1).transpose(0, 1).view(128, 64)
+    return conv_result

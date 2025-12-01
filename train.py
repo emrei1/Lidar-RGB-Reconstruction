@@ -11,7 +11,7 @@ import uuid
 from tqdm import tqdm
 from datetime import datetime as dt
 from utils.image_utils import psnr, depth2rgb, normal2rgb, depth2normal, match_depth, normal2curv, resize_image, cross_sample
-from utils.transi_utils import batch_histogram, normalize_hist, total_variation_loss, convolve_histograms, image_snr,snr_shifting
+from utils.transi_utils import convolve_histograms_64, batch_histogram, normalize_hist, total_variation_loss, convolve_histograms, image_snr,snr_shifting
 from torchvision.utils import save_image
 from argparse import ArgumentParser, Namespace
 import time
@@ -55,6 +55,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     pulse = np.mean(calibration_histogram[:, 0, :], axis=0)
     pulse = torch.tensor(pulse, dtype=torch.float32, device="cuda")
     pulse /= pulse.sum()
+    #pulse = pulse.unsqueeze(0).unsqueeze(0)
     max_index = torch.argmax(pulse)
     shift_amount = 128 - max_index
     start_index = max(0, shift_amount)
@@ -158,11 +159,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             scale_H = H_pred // H_gt
             scale_W = W_pred // W_gt
 
-            #depth_histogram_downscaled = depth_histogram.view(
-            #    transi_bins, H_gt, scale_H, W_gt, scale_W
-            #).sum(dim=(2, 4)) 
+
+            print("gt transi shape:")
+            print(gt_transi.shape)
+
+            depth_histogram_downscaled = depth_histogram.view(
+                transi_bins, H_gt, scale_H, W_gt, scale_W
+            ).sum(dim=(2, 4)) 
             
-            depth_histogram_downscaled = depth_histogram
+            #depth_histogram_downscaled = depth_histogram
 
             convolved_histograms = convolve_histograms(depth_histogram_downscaled, pulse)
 
