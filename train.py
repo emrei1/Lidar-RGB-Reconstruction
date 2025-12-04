@@ -32,6 +32,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset)
+
+    print("dataset source path")
+    print(dataset.source_path)
+
+
+
     scene = Scene(dataset, gaussians, opt.camera_lr, shuffle=False, resolution_scales=[1, 2, 5])
     use_mask = dataset.use_mask
     gaussians.training_setup(opt)
@@ -136,16 +142,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             mono *= mask_gt
             monoN = mono[:3]
 
-
         # ===== transient work =====
-
-
-        print("gt_transi")
-        print(gt_transi)
-        print("opac buffer nomask")
-        print(opac_buffer_nomask)
-        print("only use ")
-        print(opt.only_use)
 
         if gt_transi is not None and depth_buffer_nomask is not None and opac_buffer_nomask is not None and opt.only_use != "rgb": 
 
@@ -154,14 +151,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
             depth_histogram = batch_histogram(depth_buffer, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)
 
+
             transi_bins, H_pred, W_pred = depth_histogram.shape
             H_gt, W_gt = gt_transi.shape[1], gt_transi.shape[2]
             scale_H = H_pred // H_gt
             scale_W = W_pred // W_gt
-
-
-            print("gt transi shape:")
-            print(gt_transi.shape)
 
             depth_histogram_downscaled = depth_histogram.view(
                 transi_bins, H_gt, scale_H, W_gt, scale_W
@@ -170,6 +164,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             #depth_histogram_downscaled = depth_histogram
 
             convolved_histograms = convolve_histograms(depth_histogram_downscaled, pulse)
+
 
             normalized_depth_histogram = normalize_hist(convolved_histograms)
             normalized_gt_transi = normalize_hist(gt_transi)
@@ -194,7 +189,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             colorvar_weights_upscaled = torch.nn.functional.interpolate(colorvar_weights_downscaled.unsqueeze(0).unsqueeze(0),
                                                                 size=(gt_im_H, gt_im_W),
                                                                 mode='nearest').squeeze(0).squeeze(0) 
-                                                                
+                                    
+            #normalized_depth_histogram_log = normalized_depth_histogram_log.permute(1, 2, 0)
+
+
+            print("gaussians") 
+            print(len(gaussians._xyz))
+
             transi_weights = 1 - colorvar_weights_downscaled 
             transi_loss_full = torch.nn.functional.kl_div(normalized_depth_histogram_log, normalized_gt_transi, reduction='sum')
 
