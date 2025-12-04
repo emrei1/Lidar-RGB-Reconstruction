@@ -188,9 +188,11 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     try:
         cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.bin")
         cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.bin")
-        cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)
-        cam_intrinsics = read_intrinsics_binary(cameras_intrinsic_file)
-    except:
+        cam_extrinsics = read_extrinsics_binary("MyUnityScene/sparse/0/images.bin")
+        cam_intrinsics = read_intrinsics_binary("MyUnityScene/sparse/0/cameras.bin")
+    except Exception as e:
+        print("Exception: ")
+        print(e)
         cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.txt")
         cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.txt")
         cam_extrinsics = read_extrinsics_text(cameras_extrinsic_file)
@@ -209,13 +211,16 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
 
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
-    ply_path = os.path.join(path, "sparse/0/points3D.ply")
-    bin_path = os.path.join(path, "sparse/0/points3D.bin")
-    txt_path = os.path.join(path, "sparse/0/points3D.txt")
-    if not os.path.exists(ply_path):
+    ply_path = "MyUnityScene/sparse/0/points3D.ply" #os.path.join(path, "sparse/0/points3D.ply")
+    bin_path = "MyUnityScene/sparse/0/points3D.bin"#os.path.join(path, "sparse/0/points3D.bin")
+    txt_path = "MyUnityScene/sparse/0/points3D.txt"#os.path.join(path, "sparse/0/points3D.txt")
+    if True: #not os.path.exists(ply_path):
+        print("NOT EXIST")
+        print("NOT EXIST")
+        print("NOT EXIST")
         print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
         try:
-            xyz, rgb, _ = read_points3D_binary(bin_path)
+            xyz, rgb, _ = read_points3D_binary("MyUnityScene/sparse/0/points3D.bin")
         except:
             xyz, rgb, _ = read_points3D_text(txt_path)
 
@@ -223,7 +228,14 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     try:
         pcd = fetchPly(ply_path)
 
-    except:
+
+        print("ply path is : ")
+        print(ply_path)
+
+
+    except Exception as e:
+        print("exception occured")
+        print(e)
         pcd = None
     scene_info = SceneInfo(point_cloud=pcd,
                            train_cameras=train_cam_infos,
