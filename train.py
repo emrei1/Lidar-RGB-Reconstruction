@@ -199,6 +199,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             transi_weights = 1 - colorvar_weights_downscaled 
             transi_loss_full = torch.nn.functional.kl_div(normalized_depth_histogram_log, normalized_gt_transi, reduction='sum')
 
+
+
+            opt.transi_only_until = 1
+
+
             if iteration < opt.transi_only_until:
                 transi_loss = (transi_loss_full/normalized_depth_histogram_log.size(0)).mean()
             else: 
