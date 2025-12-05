@@ -163,10 +163,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             
             #depth_histogram_downscaled = depth_histogram
 
-            convolved_histograms = convolve_histograms(depth_histogram_downscaled, pulse)
+            #convolved_histograms = convolve_histograms(depth_histogram_downscaled, pulse)
 
 
-            normalized_depth_histogram = normalize_hist(convolved_histograms)
+            normalized_depth_histogram = normalize_hist(depth_histogram_downscaled)
             normalized_gt_transi = normalize_hist(gt_transi)
             normalized_depth_histogram_log = torch.log(normalized_depth_histogram)
 
