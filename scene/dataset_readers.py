@@ -142,8 +142,9 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         except FileNotFoundError:
             mask = np.ones([1, image.size[1], image.size[0]]).astype(np.float32)
 
-        try: 
-            transi = load_transi(f"{images_folder}/../transient/{image_name}_transient.npy")
+        try:
+            print(f"MyUnityScene/transient/{image_name}_transient.npy")
+            transi = load_transi(f"MyUnityScene/transient/{image_name}_transient.npy")
         except FileNotFoundError: 
             transi=None 
 
@@ -277,7 +278,9 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
 
             img_ref = frame["file_path"].split("/")
             img_id = img_ref[-1]
-            transi = load_transi(path + "/transient/" + img_id + "_transient.npy")
+            print("transi file")
+            print("MyUnityScene/transient/" + img_id + "_transient.npy")
+            transi = load_transi("MyUnityScene/transient/" + img_id + "_transient.npy")
             # bg = np.array([1,1,1]) if white_background else np.array([0, 0, 0])
 
             norm_data = im_data / 255.0

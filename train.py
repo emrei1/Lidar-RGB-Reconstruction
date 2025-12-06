@@ -33,11 +33,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset)
 
-    print("dataset source path")
-    print(dataset.source_path)
-
-
-
     scene = Scene(dataset, gaussians, opt.camera_lr, shuffle=False, resolution_scales=[1, 2, 5])
     use_mask = dataset.use_mask
     gaussians.training_setup(opt)
@@ -117,10 +112,29 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         patch_size = [float('inf'), float('inf')]
 
         # coarse to fine sampling 
-        render_pkg = render(viewpoint_cam, gaussians, pipe, background, patch_size)
+        render_pkg = render(viewpoint_cam, gaussians, pipe, background, patch_size, scaling_modifier = 0.05)
         image, normal, depth, _, opac, _, viewspace_point_tensor, visibility_filter, radii = \
             render_pkg["render"], render_pkg["normal"], render_pkg["depth"], render_pkg["depth_buffer"], render_pkg["opac"], render_pkg["opac_buffer"], \
             render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+
+
+        
+        #print("First camera center:", viewpoint_cam.camera_center)
+        #print("XYZ min:", gaussians.get_xyz.min(dim=0).values)
+        #print("XYZ max:", gaussians.get_xyz.max(dim=0).values)
+        #s = gaussians.get_scaling
+        #print("> 0.2:", (s > 0.2).sum().item())
+        #print("> 0.5:", (s > 0.5).sum().item())
+        #print("> 1.0:", (s > 1.0).sum().item())
+        #print("> 2.0:", (s > 2.0).sum().item())
+
+        #s = gaussians.get_scaling
+        #print("Scaling min/mean/max:", s.min().item(), s.mean().item(), s.max().item())
+
+        #print("Visible Gaussians:", visibility_filter.sum().item())
+       # print("Min/Max radii:", render_pkg["radii"].min().item(), render_pkg["radii"].max().item())
+
+
 
         # fullsize sampling for transient
         render_pkg_fullsize = render(viewpoint_cam_fullsize, gaussians, pipe, background, patch_size)
@@ -143,6 +157,16 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             monoN = mono[:3]
 
         # ===== transient work =====
+
+        print("gt_transi")
+        print(gt_transi)
+        print("depth buffer nomask")
+        print(depth_buffer_nomask)
+        print("opac buffer nomask")
+        print(opac_buffer_nomask)
+        print("opt only use")
+        print(opt.only_use)
+
 
         if gt_transi is not None and depth_buffer_nomask is not None and opac_buffer_nomask is not None and opt.only_use != "rgb": 
 
@@ -193,13 +217,26 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             #normalized_depth_histogram_log = normalized_depth_histogram_log.permute(1, 2, 0)
 
 
-            print("gaussians") 
-            print(len(gaussians._xyz))
+           # print("gaussians") 
+           # print(len(gaussians._xyz))
 
             transi_weights = 1 - colorvar_weights_downscaled 
             transi_loss_full = torch.nn.functional.kl_div(normalized_depth_histogram_log, normalized_gt_transi, reduction='sum')
 
 
+
+
+            print("depth_buffer_nomask.requires_grad:", depth_buffer_nomask.requires_grad)
+            depth_buffer = depth_buffer_nomask * mask_vis_fullsize
+            print("depth_buffer.requires_grad:", depth_buffer.requires_grad)
+
+            batch_histogram(depth_buffer, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)
+            print("depth_histogram.requires_grad:", depth_histogram.requires_grad)
+
+            normalized_depth_histogram = normalize_hist(depth_histogram_downscaled)
+            print("normalized_depth_histogram.requires_grad:", normalized_depth_histogram.requires_grad)
+
+            print("||grad(depth_buffer_nomask)|| =", depth_buffer_nomask.grad.abs().sum().item())
 
             opt.transi_only_until = 1
 
