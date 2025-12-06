@@ -23,6 +23,7 @@ try:
 except ImportError:
     TENSORBOARD_FOUND = False
 import ot
+import pdb
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
     
@@ -158,23 +159,28 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         # ===== transient work =====
 
-        print("gt_transi")
-        print(gt_transi)
-        print("depth buffer nomask")
-        print(depth_buffer_nomask)
-        print("opac buffer nomask")
-        print(opac_buffer_nomask)
-        print("opt only use")
-        print(opt.only_use)
-
-
         if gt_transi is not None and depth_buffer_nomask is not None and opac_buffer_nomask is not None and opt.only_use != "rgb": 
 
             depth_buffer = depth_buffer_nomask * mask_vis_fullsize
             opac_buffer = opac_buffer_nomask * mask_vis_fullsize
 
+
+            #print("depth_buffer mean:", depth_buffer.mean().item())
+
+            #pdb.set_trace()
+
+
             depth_histogram = batch_histogram(depth_buffer, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)
 
+
+            #print("depth buffer shape")
+            #print(depth_buffer.shape)
+
+            #print("gt transi shape")
+            #print(gt_transi.shape)
+
+            #print("depth histogram unique")
+            #print(np.unique(depth_histogram.cpu().detach().numpy()))
 
             transi_bins, H_pred, W_pred = depth_histogram.shape
             H_gt, W_gt = gt_transi.shape[1], gt_transi.shape[2]
@@ -184,7 +190,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             depth_histogram_downscaled = depth_histogram.view(
                 transi_bins, H_gt, scale_H, W_gt, scale_W
             ).sum(dim=(2, 4)) 
-            
+
+            #dh = depth_histogram  # tensor
+
+            #mask = torch.isfinite(dh)
+            #if mask.any():
+            #    print("finite mean:", np.nanmean(dh[mask].cpu().detach().numpy()))
+            #else:
+            #    print("no finite values in histogram")
+
             #depth_histogram_downscaled = depth_histogram
 
             #convolved_histograms = convolve_histograms(depth_histogram_downscaled, pulse)
@@ -217,26 +231,26 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             #normalized_depth_histogram_log = normalized_depth_histogram_log.permute(1, 2, 0)
 
 
-           # print("gaussians") 
+
+            #print("normalized_depth_histogram_log shape")
+            #print(normalized_depth_histogram_log.shape)
+            #print("normalized gt transi shape")
+            #print(normalized_gt_transi.shape)
+            #print("normalized depth histogram log unique")
+            #print(np.unique(normalized_depth_histogram_log.cpu().detach().numpy()))
+            #print("normalized gt transi unique")
+            #print(np.unique(normalized_gt_transi.cpu().detach().numpy()))
+
+
+
+
+
+
+# print("gaussians") 
            # print(len(gaussians._xyz))
 
             transi_weights = 1 - colorvar_weights_downscaled 
             transi_loss_full = torch.nn.functional.kl_div(normalized_depth_histogram_log, normalized_gt_transi, reduction='sum')
-
-
-
-
-            print("depth_buffer_nomask.requires_grad:", depth_buffer_nomask.requires_grad)
-            depth_buffer = depth_buffer_nomask * mask_vis_fullsize
-            print("depth_buffer.requires_grad:", depth_buffer.requires_grad)
-
-            batch_histogram(depth_buffer, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)
-            print("depth_histogram.requires_grad:", depth_histogram.requires_grad)
-
-            normalized_depth_histogram = normalize_hist(depth_histogram_downscaled)
-            print("normalized_depth_histogram.requires_grad:", normalized_depth_histogram.requires_grad)
-
-            print("||grad(depth_buffer_nomask)|| =", depth_buffer_nomask.grad.abs().sum().item())
 
             opt.transi_only_until = 1
 
