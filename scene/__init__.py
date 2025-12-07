@@ -7,6 +7,7 @@ from scene.gaussian_model import GaussianModel
 from arguments import ModelParams
 import torch
 from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
+import pdb
 
 class Scene:
 
@@ -59,12 +60,52 @@ class Scene:
             random.shuffle(scene_info.train_cameras)
             random.shuffle(scene_info.test_cameras) 
 
+
+
+        # --------- SCENE SCALING BLOCK ---------
+        target_far = 10.0  # Unity lidarMaxDistance
+        current_far = scene_info.nerf_normalization["radius"]
+        scene_scale = target_far / current_far
+        print("Scene scale:", scene_scale)
+
+        scaled_train_cams = []
+        for ci in scene_info.train_cameras:
+            scaled_train_cams.append(
+                ci._replace(T=ci.T * scene_scale)  # if CameraInfo is NamedTuple
+            )
+
+        scaled_test_cams = []
+        for ci in scene_info.test_cameras:
+            scaled_test_cams.append(
+                ci._replace(T=ci.T * scene_scale)
+            )
+
+        scaled_points = scene_info.point_cloud.points * scene_scale
+        scene_info = scene_info._replace(
+            train_cameras=scaled_train_cams,
+            test_cameras=scaled_test_cams,
+            point_cloud=type(scene_info.point_cloud)(
+                points=scaled_points,
+                colors=scene_info.point_cloud.colors,
+                normals=scene_info.point_cloud.normals,
+            ),
+        )        
+
+
+        # Scale normalization radius
+        scene_info.nerf_normalization["radius"] *= scene_scale
+        # --------- END SCENE SCALING BLOCK ---------
+
         self.cameras_extent = scene_info.nerf_normalization["radius"]
 
         print(f"Loading cameras: {len(scene_info.train_cameras)} for training and {len(scene_info.test_cameras)} for testing")
         for resolution_scale in resolution_scales:
             self.train_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.train_cameras, resolution_scale, self.cameras_extent, camera_lr, args)
             self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, self.cameras_extent, camera_lr, args)
+
+
+        #pdb.set_trace()
+
 
         if gaussians is None:
             return

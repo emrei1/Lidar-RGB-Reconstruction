@@ -14,6 +14,7 @@ import math
 import numpy as np
 from typing import NamedTuple
 from utils.general_utils import quaternion2rotmat
+from dataclasses import dataclass
 
 class BasicPointCloud(NamedTuple):
     points : np.array

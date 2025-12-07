@@ -29,6 +29,10 @@ import imageio
 import skimage
 import cv2
 from scene.gaussian_model import BasicPointCloud
+from dataclasses import dataclass
+
+
+import pdb
 
 class CameraInfo(NamedTuple):
     uid: int
@@ -125,8 +129,6 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
             # exit()
             assert False, "Colmap camera model not handled: only undistorted datasets (PINHOLE or SIMPLE_PINHOLE cameras) supported!"
 
-
-
         try:
             monoN = read_monoData(f'{images_folder}/../normal/{image_name}_normal.npy')
             try:
@@ -201,6 +203,7 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
 
     reading_dir = "images" if images == None else images
     cam_infos_unsorted = readColmapCameras(cam_extrinsics=cam_extrinsics, cam_intrinsics=cam_intrinsics, images_folder=os.path.join(path, reading_dir))
+
     cam_infos = sorted(cam_infos_unsorted.copy(), key = lambda x : x.image_name)
 
     if eval:
@@ -216,9 +219,6 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     bin_path = "MyUnityScene/sparse/0/points3D.bin"#os.path.join(path, "sparse/0/points3D.bin")
     txt_path = "MyUnityScene/sparse/0/points3D.txt"#os.path.join(path, "sparse/0/points3D.txt")
     if True: #not os.path.exists(ply_path):
-        print("NOT EXIST")
-        print("NOT EXIST")
-        print("NOT EXIST")
         print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
         try:
             xyz, rgb, _ = read_points3D_binary("MyUnityScene/sparse/0/points3D.bin")
@@ -228,11 +228,6 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
         storePly(ply_path, xyz, rgb)
     try:
         pcd = fetchPly(ply_path)
-
-
-        print("ply path is : ")
-        print(ply_path)
-
 
     except Exception as e:
         print("exception occured")
@@ -278,8 +273,6 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
 
             img_ref = frame["file_path"].split("/")
             img_id = img_ref[-1]
-            print("transi file")
-            print("MyUnityScene/transient/" + img_id + "_transient.npy")
             transi = load_transi("MyUnityScene/transient/" + img_id + "_transient.npy")
             # bg = np.array([1,1,1]) if white_background else np.array([0, 0, 0])
 

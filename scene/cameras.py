@@ -6,6 +6,7 @@ import numpy as np
 from utils.graphics_utils import getWorld2View, getWorld2View2, getProjectionMatrix, fov2focal
 from utils.general_utils import rotmat2quaternion
 from scipy.ndimage import gaussian_filter1d
+import pdb
 
 class Camera(nn.Module):
     def __init__(self, colmap_id, R, T, FoVx, FoVy, prcppoint,
@@ -63,8 +64,6 @@ class Camera(nn.Module):
         self.transi = None if transi is None else torch.from_numpy(transi).to(torch.float32) 
         
         self.to_cpu()
-        
-
 
     def update(self):
         self.world_view_transform = getWorld2View(self.q, self.T, self.trans, self.scale).transpose(0, 1)

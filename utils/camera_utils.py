@@ -5,6 +5,8 @@ from utils.general_utils import PILtoTorch, quaternion2rotmat, rotmat2quaternion
 from utils.graphics_utils import fov2focal
 from utils.image_utils import resize_image
 
+import pdb
+
 WARNED = False
 
 def loadCam(args, id, cam_info, resolution_scale, scene_scale, camera_lr):
@@ -45,6 +47,9 @@ def loadCam(args, id, cam_info, resolution_scale, scene_scale, camera_lr):
 
     if resized_image_rgb.shape[1] == 4:
         loaded_mask = resized_image_rgb[3:4, ...]
+    
+    #pdb.set_trace()
+
 
     return Camera(colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, 
                   FoVx=cam_info.FovX, FoVy=cam_info.FovY, prcppoint=cam_info.prcppoint,

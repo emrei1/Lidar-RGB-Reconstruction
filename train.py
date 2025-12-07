@@ -25,6 +25,23 @@ except ImportError:
 import ot
 import pdb
 
+def safe_normalize_hist(hist, eps=1e-8):
+    """
+    Normalizes histogram along bin dimension, returns shape (B, H, W).
+    Safe version: avoids division by zero and NaNs.
+    """
+    # Sum over bins → shape (1, H, W)
+    hist_sum = hist.sum(dim=0, keepdim=True)
+
+    # Prevent division by zero
+    hist_sum_safe = hist_sum.clamp_min(eps)
+
+    # Normalize
+    hist_norm = hist / hist_sum_safe
+
+    return hist_norm
+
+
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
     
 
@@ -33,8 +50,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset)
+    
+    #pdb.set_trace()
 
     scene = Scene(dataset, gaussians, opt.camera_lr, shuffle=False, resolution_scales=[1, 2, 5])
+
     use_mask = dataset.use_mask
     gaussians.training_setup(opt)
     if checkpoint:
@@ -104,7 +124,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         randcam = randint(0, len(viewpoint_stack) - 1)
         viewpoint_cam_fullsize = viewpoint_stack_fullsize.pop(randcam)
         viewpoint_cam = viewpoint_stack.pop(randcam)
-        
+     
+
+        #pdb.set_trace()
+
         # render
         if (iteration - 1) == debug_from:
             pipe.debug = True
@@ -146,6 +169,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gt_image_fullsize = viewpoint_cam_fullsize.get_gtImage(background, use_mask)
         _, gt_im_H, gt_im_W = gt_image.shape
         gt_transi = viewpoint_cam.get_gtTransi() if viewpoint_cam.get_gtTransi() is not None else None
+
+
+        #pdb.set_trace()
+        
         #if gt_transi is None: 
         #    breakpoint() 
         mask_vis = (opac.detach() > 1e-5)
@@ -204,9 +231,17 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             #convolved_histograms = convolve_histograms(depth_histogram_downscaled, pulse)
 
 
-            normalized_depth_histogram = normalize_hist(depth_histogram_downscaled)
-            normalized_gt_transi = normalize_hist(gt_transi)
+            normalized_depth_histogram = safe_normalize_hist(depth_histogram_downscaled)
+            normalized_gt_transi = safe_normalize_hist(gt_transi)
+
+            eps = 1e-8
+            normalized_depth_histogram = normalized_depth_histogram.clamp_min(eps)
+            normalized_gt_transi       = normalized_gt_transi.clamp_min(eps)
+
             normalized_depth_histogram_log = torch.log(normalized_depth_histogram)
+
+
+            #pdb.set_trace()
 
             strd = opt.strd
             mean = torch.nn.functional.avg_pool2d(gt_image, strd, stride=strd)
@@ -243,7 +278,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
 
 
-
+            #pdb.set_trace()
 
 
 # print("gaussians") 
@@ -252,7 +287,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             transi_weights = 1 - colorvar_weights_downscaled 
             transi_loss_full = torch.nn.functional.kl_div(normalized_depth_histogram_log, normalized_gt_transi, reduction='sum')
 
-            opt.transi_only_until = 1
+            #opt.transi_only_until = 1
 
 
             if iteration < opt.transi_only_until:
@@ -311,11 +346,17 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             raise Exception("Can't use lidar only if no gt transients available!")
         else:
             if gt_transi is not None:
-                if iteration < opt.transi_only_until:
-                    loss = opt.transi_weight * transi_loss
+                if iteration < 1000:
+                    loss = loss_rgb
                 else:
-                    loss = transi_loss
-                    loss += loss_rgb * (1/opt.transi_weight)
+                    pdb.set_trace()
+                    loss = loss_rgb
+                    loss += transi_loss
+                #if iteration < opt.transi_only_until:
+                 #   loss = opt.transi_weight * transi_loss
+                #else:
+                 #   loss = transi_loss
+                  #  loss += loss_rgb * (1/opt.transi_weight)
             else:
                 loss = loss_rgb  # user didn't specify rgb only but no transi exists 
 
@@ -387,6 +428,17 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
+
+
+
+            print("iter", iteration)
+            print("loss_rgb:", loss_rgb.item())
+            if not isinstance(transi_loss, int):
+                print("transi_loss:", float(transi_loss))
+            print("opac render min/mean/max:", opac.min().item(), opac.mean().item(), opac.max().item())
+            print("num visible gaussians:", visibility_filter.sum().item())
+            print("train gaussians:", gaussians.get_xyz.shape[0])
+
 
 
 def prepare_output_and_logger(args):       
