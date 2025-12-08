@@ -60,6 +60,30 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     means2D = screenspace_points
     opacity = pc.get_opacity
 
+    N = means3D.shape[0]
+    ones = torch.ones((N, 1), device=means3D.device)
+    means3D_h = torch.cat([means3D, ones], dim=1)
+
+    # Project to clip space
+    clip = means3D_h @ viewpoint_camera.full_proj_transform.T
+
+    # Convert to NDC and then pixel coordinates
+    ndc = clip[:, :2] / clip[:, 3:4]
+
+
+    means2D = torch.zeros((N, 3), device=means3D.device)
+
+    means2D[:, 0] = (ndc[:, 0] + 1) * 0.5 * viewpoint_camera.image_width
+    means2D[:, 1] = (ndc[:, 1] + 1) * 0.5 * viewpoint_camera.image_height
+
+    # radius term required by this repo's rasterizer
+    means2D[:, 2] = clip[:, 3]
+    
+    print("means2D shape:", means2D.shape)
+    print("means2D min:", means2D.min(0).values)
+    print("means2D max:", means2D.max(0).values)
+    print("means2D finite:", torch.isfinite(means2D).all().item())
+
     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
     # scaling / rotation by the rasterizer.
     scales = None

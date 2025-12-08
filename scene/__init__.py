@@ -71,13 +71,13 @@ class Scene:
         scaled_train_cams = []
         for ci in scene_info.train_cameras:
             scaled_train_cams.append(
-                ci._replace(T=ci.T * scene_scale)  # if CameraInfo is NamedTuple
-            )
+                ci._replace(T=ci.T * scene_scale)._replace(FovX = ci.FovX * scene_scale)
+                )
 
         scaled_test_cams = []
         for ci in scene_info.test_cameras:
             scaled_test_cams.append(
-                ci._replace(T=ci.T * scene_scale)
+                ci._replace(T=ci.T * scene_scale)._replace(FovX = ci.FovX * scene_scale)
             )
 
         scaled_points = scene_info.point_cloud.points * scene_scale
@@ -104,6 +104,14 @@ class Scene:
             self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, self.cameras_extent, camera_lr, args)
 
 
+        for cam_list in self.train_cameras.values():
+            for cam in cam_list:
+                cam.update()
+
+        for cam_list in self.test_cameras.values():
+            for cam in cam_list:
+                cam.update()
+
         #pdb.set_trace()
 
 
@@ -117,7 +125,9 @@ class Scene:
                                                            "point_cloud.ply"))
         else:
             self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent)
-        
+            with torch.no_grad():
+                self.gaussians._scaling[:] = -4.6
+
 
         self.gaussians.config.append(camera_lr > 0)
         self.gaussians.config = torch.tensor(self.gaussians.config, dtype=torch.float32, device="cuda")

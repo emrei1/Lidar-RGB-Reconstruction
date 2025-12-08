@@ -171,6 +171,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gt_transi = viewpoint_cam.get_gtTransi() if viewpoint_cam.get_gtTransi() is not None else None
 
 
+
+     #   opac_buffer_nomask = torch.nan_to_num(
+    #        opac_buffer_nomask,
+   #         nan=0.0,
+  #          posinf=0.0,
+ #           neginf=0.0,
+#        )
+
+
         #pdb.set_trace()
         
         #if gt_transi is None: 
