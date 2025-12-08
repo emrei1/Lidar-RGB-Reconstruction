@@ -51,8 +51,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset)
     
-    #pdb.set_trace()
-
     scene = Scene(dataset, gaussians, opt.camera_lr, shuffle=False, resolution_scales=[1, 2, 5])
 
     use_mask = dataset.use_mask
@@ -102,8 +100,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         iter_start.record()
 
+        pdb.set_trace()
+
+
         gaussians.update_learning_rate(iteration)
-        
+
         # Every 1000 its we increase the levels of SH up to a maximum degree
         if iteration % 1000 == 0:
             gaussians.oneupSHdegree()
@@ -203,14 +204,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         gaussians.prune_points(mask)
 
-        gaussians._scaling.data.clamp_(min=1e-4, max=1.0)
-        gaussians._opacity.data.clamp_(1e-4, 0.99)
-        gaussians._rotation.data = gaussians._rotation.data / gaussians._rotation.data.norm(dim=1, keepdim=True)
-        # degree-0 features (RGB bias)
-        gaussians._features_dc.data.clamp_(-5.0, 5.0)
-
-        # higher-order SH components
-        gaussians._features_rest.data.clamp_(-5.0, 5.0)
 ########################
 
         # fullsize sampling for transient

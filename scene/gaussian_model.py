@@ -251,6 +251,20 @@ class GaussianModel:
         self.config[3] = training_args.camera_lr > 0
         # self.optimizer = torch.optim.SGD(l)
         self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
+   
+#---------------------------
+# 1) Register hook first (tensor still requires_grad=True here)
+        self._scaling.register_hook(lambda grad: torch.zeros_like(grad))
+
+# 2) Now freeze
+        self._scaling.requires_grad_(False)
+
+# 3) Clear Adam state
+        if self._scaling in self.optimizer.state:
+            self.optimizer.state[self._scaling].clear()
+# ---------------------------------
+
+
         self.xyz_scheduler_args = get_expon_lr_func(lr_init=training_args.position_lr_init*self.spatial_lr_scale,
                                                     lr_final=training_args.position_lr_final*self.spatial_lr_scale,
                                                     lr_delay_mult=training_args.position_lr_delay_mult,
