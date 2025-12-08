@@ -16,6 +16,36 @@ from utils.general_utils import strip_symmetric, build_scaling_rotation
 
 class GaussianModel:
 
+
+
+    def prune_points(self, mask):
+        before = self._xyz.shape[0]
+
+        valid_points_mask = ~mask
+        optimizable_tensors = self._prune_optimizer(valid_points_mask)
+
+        self._xyz = optimizable_tensors["xyz"]
+        self._features_dc = optimizable_tensors["f_dc"]
+        self._features_rest = optimizable_tensors["f_rest"]
+        self._opacity = optimizable_tensors["opacity"]
+        self._scaling = optimizable_tensors["scaling"]
+        self._rotation = optimizable_tensors["rotation"]
+
+        self.xyz_gradient_accum = self.xyz_gradient_accum[valid_points_mask]
+        self.scale_gradient_accum = self.scale_gradient_accum[valid_points_mask]
+        self.rot_gradient_accum = self.rot_gradient_accum[valid_points_mask]
+        self.opac_gradient_accum = self.opac_gradient_accum[valid_points_mask]
+
+        self.denom = self.denom[valid_points_mask]
+        self.max_radii2D = self.max_radii2D[valid_points_mask]
+        torch.cuda.empty_cache()
+
+        after = self._xyz.shape[0]
+        print(f"Pruned {before - after} Gaussians → Remaining: {after}")
+
+
+
+
     def setup_functions(self):
         def build_covariance_from_scaling_rotation(scaling, scaling_modifier, rotation):
             L = build_scaling_rotation(scaling_modifier * scaling, rotation)

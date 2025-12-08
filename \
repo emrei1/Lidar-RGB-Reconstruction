@@ -61,6 +61,41 @@ class Scene:
             random.shuffle(scene_info.test_cameras) 
 
 
+
+        # --------- SCENE SCALING BLOCK ---------
+        target_far = 10.0  # Unity lidarMaxDistance
+        current_far = scene_info.nerf_normalization["radius"]
+        scene_scale = target_far / current_far
+        print("Scene scale:", scene_scale)
+
+        scaled_train_cams = []
+        for ci in scene_info.train_cameras:
+            scaled_train_cams.append(
+                ci._replace(T=ci.T * scene_scale)._replace(FovX = ci.FovX / scene_scale)
+                )
+
+        scaled_test_cams = []
+        for ci in scene_info.test_cameras:
+            scaled_test_cams.append(
+                ci._replace(T=ci.T * scene_scale)._replace(FovX = ci.FovX / scene_scale)
+            )
+
+        scaled_points = scene_info.point_cloud.points * scene_scale
+        scene_info = scene_info._replace(
+            train_cameras=scaled_train_cams,
+            test_cameras=scaled_test_cams,
+            point_cloud=type(scene_info.point_cloud)(
+                points=scaled_points,
+                colors=scene_info.point_cloud.colors,
+                normals=scene_info.point_cloud.normals,
+            ),
+        )        
+
+
+        # Scale normalization radius
+        scene_info.nerf_normalization["radius"] *= scene_scale
+        # --------- END SCENE SCALING BLOCK ---------
+
         self.cameras_extent = scene_info.nerf_normalization["radius"]
 
         print(f"Loading cameras: {len(scene_info.train_cameras)} for training and {len(scene_info.test_cameras)} for testing")
@@ -68,6 +103,14 @@ class Scene:
             self.train_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.train_cameras, resolution_scale, self.cameras_extent, camera_lr, args)
             self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, self.cameras_extent, camera_lr, args)
 
+
+        for cam_list in self.train_cameras.values():
+            for cam in cam_list:
+                cam.update()
+
+        for cam_list in self.test_cameras.values():
+            for cam in cam_list:
+                cam.update()
 
         #pdb.set_trace()
 
@@ -82,6 +125,9 @@ class Scene:
                                                            "point_cloud.ply"))
         else:
             self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent)
+            with torch.no_grad():
+                self.gaussians._scaling[:] = -4.6
+
 
         self.gaussians.config.append(camera_lr > 0)
         self.gaussians.config = torch.tensor(self.gaussians.config, dtype=torch.float32, device="cuda")
