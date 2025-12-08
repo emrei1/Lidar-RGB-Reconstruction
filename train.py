@@ -100,7 +100,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         iter_start.record()
 
-        pdb.set_trace()
+        #pdb.set_trace()
 
 
         gaussians.update_learning_rate(iteration)
@@ -138,9 +138,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         # coarse to fine sampling 
         render_pkg = render(viewpoint_cam, gaussians, pipe, background, patch_size, scaling_modifier = 0.05)
-        image, normal, depth, _, opac, _, viewspace_point_tensor, visibility_filter, radii = \
+        image, normal, depth, _, opac, _, viewspace_point_tensor, visibility_filter = \
             render_pkg["render"], render_pkg["normal"], render_pkg["depth"], render_pkg["depth_buffer"], render_pkg["opac"], render_pkg["opac_buffer"], \
-            render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+            render_pkg["viewspace_points"], render_pkg["visibility_filter"]
 
 
         
@@ -160,50 +160,50 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
        # print("Min/Max radii:", render_pkg["radii"].min().item(), render_pkg["radii"].max().item())
 
 ########################
-
-        xyz = gaussians.get_xyz
-        scaling = gaussians.get_scaling
-        opacity = gaussians.get_opacity
+#
+ #       xyz = gaussians.get_xyz
+  #      scaling = gaussians.get_scaling
+ #       opacity = gaussians.get_opacity
  
-        mask = (
-              ~torch.isfinite(xyz).all(dim=1) |
-            ~torch.isfinite(scaling).all(dim=1) |
-            ~torch.isfinite(opacity).all(dim=1)
-        )
+  #      mask = (
+   #           ~torch.isfinite(xyz).all(dim=1) |
+    #        ~torch.isfinite(scaling).all(dim=1) |
+     #       ~torch.isfinite(opacity).all(dim=1)
+      #  )
 
-        gaussians.prune_points(mask)
-
-#
-
-        extent = scene.cameras_extent
-        xyz = gaussians.get_xyz
-
-        mask = (xyz.abs().max(dim=1).values > extent)
-
-        gaussians.prune_points(mask)
-
-#
-        scaling = gaussians.get_scaling
-        max_scale = 0.5 * scene.cameras_extent  # or any threshold
-
-
-        mask = scaling.max(dim=1).values > max_scale
-
-        gaussians.prune_points(mask)
+       # gaussians.prune_points(mask)
 
 #
 
-        mask = scaling.min(dim=1).values < 1e-8
+#        extent = scene.cameras_extent
+ #       xyz = gaussians.get_xyz
 
-        gaussians.prune_points(mask)
+  #      mask = (xyz.abs().max(dim=1).values > extent)
+
+   #     gaussians.prune_points(mask)
+
+#
+    #    scaling = gaussians.get_scaling
+     #   max_scale = 0.5 * scene.cameras_extent  # or any threshold
+
+#
+#        mask = scaling.max(dim=1).values > max_scale
+
+ #       gaussians.prune_points(mask)
 
 #
 
-        opacity = gaussians.get_opacity
-        mask = (opacity.squeeze() < 0.01)
+  #      mask = scaling.min(dim=1).values < 1e-8
 
-        gaussians.prune_points(mask)
+   #     gaussians.prune_points(mask)
 
+#
+
+    #    opacity = gaussians.get_opacity
+     #   mask = (opacity.squeeze() < 0.01)
+
+      #  gaussians.prune_points(mask)
+#"""
 ########################
 
         # fullsize sampling for transient
@@ -216,6 +216,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         _, gt_im_H, gt_im_W = gt_image.shape
         gt_transi = viewpoint_cam.get_gtTransi() if viewpoint_cam.get_gtTransi() is not None else None
 
+
+        visibility_filter = (opac.detach() > 1e-5)
 
 
      #   opac_buffer_nomask = torch.nan_to_num(
@@ -401,12 +403,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             raise Exception("Can't use lidar only if no gt transients available!")
         else:
             if gt_transi is not None:
-                if iteration < 1000:
-                    loss = loss_rgb
+                if iteration < opt.transi_only_until:
+                    loss = opt.transi_weight * transi_loss
                 else:
-                    pdb.set_trace()
-                    loss = loss_rgb
-                    loss += transi_loss
+                    #pdb.set_trace()
+                    loss = transi_loss
+                    loss += loss_rgb * (1/opt.transi_weight)
                 #if iteration < opt.transi_only_until:
                  #   loss = opt.transi_weight * transi_loss
                 #else:
@@ -448,25 +450,27 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             cull_over = opt.cull_over
             cull_every = opt.cull_every
 
-            if iteration % cull_every == 0 and iteration < opt.transi_only_until:
-                gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
-                pruned_data = gaussians.prune_large_gaussians(cull_over / opt.cull_over_transi_only)
-                gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent)
+ #           if iteration % cull_every == 0 and iteration < opt.transi_only_until:
+                #gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
+            #    pruned_data = gaussians.prune_large_gaussians(cull_over / opt.cull_over_transi_only)
+#                gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent)
 
             # densification 
             if iteration > opt.transi_only_until:
-                gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
-                gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
+                #gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
+            #    gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
                 min_opac = 0.1
                 if iteration % opt.densification_interval == 0:
                     gaussians.adaptive_prune(min_opac, scene.cameras_extent)
                     gaussians.adaptive_densify(opt.densify_grad_threshold, scene.cameras_extent)
-                if iteration % cull_every == 0:
-                    pruned_data = gaussians.prune_large_gaussians(cull_over)
-                    gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent, N=opt.prune_replace)
+            #    if iteration % cull_every == 0:
+             #       pruned_data = gaussians.prune_large_gaussians(cull_over)
+             #       gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent, N=opt.prune_replace)
                 if (iteration-1) % opt.opacity_reset_interval == 0 and opt.opacity_lr > 0:
                     gaussians.reset_opacity(0.12, iteration)
 
+
+            
 
             if iteration > 1 and (iteration - 1) % opt.train_viz_update == 0: #4999 == 0:
                 print("Saving to test folder")
@@ -480,11 +484,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gaussians.optimizer.step()
                 gaussians.optimizer.zero_grad() 
 
-                with torch.no_grad():
+  #              with torch.no_grad():
                     # clamp raw log-scales to a sane range
-                    gaussians._scaling.data.clamp_(min=-6.2, max=-3.9)
+ #                   gaussians._scaling.data.clamp_(min=-6.2, max=-3.9)
                     # optional: make sure opacity stays finite too
-                    gaussians._opacity.clamp_(min=-10.0, max=10.0)
+#                    gaussians._opacity.clamp_(min=-10.0, max=10.0)
 
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))

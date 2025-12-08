@@ -254,14 +254,14 @@ class GaussianModel:
    
 #---------------------------
 # 1) Register hook first (tensor still requires_grad=True here)
-        self._scaling.register_hook(lambda grad: torch.zeros_like(grad))
+#        self._scaling.register_hook(lambda grad: torch.zeros_like(grad))
 
 # 2) Now freeze
-        self._scaling.requires_grad_(False)
+ #       self._scaling.requires_grad_(False)
 
 # 3) Clear Adam state
-        if self._scaling in self.optimizer.state:
-            self.optimizer.state[self._scaling].clear()
+  #      if self._scaling in self.optimizer.state:
+   #         self.optimizer.state[self._scaling].clear()
 # ---------------------------------
 
 

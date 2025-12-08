@@ -112,7 +112,6 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     else:
         raise ValueError(f"Unexpected number of outputs from rasterizer: {len(outputs)}")
 
-
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
     return {"render": rendered_image, "normal": rendered_normal, "depth": rendered_depth, "depth_buffer":rendered_depth_buffer, "opac": rendered_opac, "opac_buffer": rendered_opac_buffer,
