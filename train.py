@@ -135,17 +135,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         background = torch.rand((3), dtype=torch.float32, device="cuda") if dataset.random_background else background
         patch_size = [float('inf'), float('inf')]
 
-
-        gaussians._scaling.data.clamp_(min=1e-4, max=1.0)
-        gaussians._opacity.data.clamp_(1e-4, 0.99)
-        gaussians._rotation.data = gaussians._rotation.data / gaussians._rotation.data.norm(dim=1, keepdim=True)
-        # degree-0 features (RGB bias)
-        gaussians._features_dc.data.clamp_(-5.0, 5.0)
-
-        # higher-order SH components
-        gaussians._features_rest.data.clamp_(-5.0, 5.0)
-
-
         # coarse to fine sampling 
         render_pkg = render(viewpoint_cam, gaussians, pipe, background, patch_size, scaling_modifier = 0.05)
         image, normal, depth, _, opac, _, viewspace_point_tensor, visibility_filter, radii = \
@@ -169,7 +158,60 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         #print("Visible Gaussians:", visibility_filter.sum().item())
        # print("Min/Max radii:", render_pkg["radii"].min().item(), render_pkg["radii"].max().item())
 
+########################
 
+        xyz = gaussians.get_xyz
+        scaling = gaussians.get_scaling
+        opacity = gaussians.get_opacity
+ 
+        mask = (
+              ~torch.isfinite(xyz).all(dim=1) |
+            ~torch.isfinite(scaling).all(dim=1) |
+            ~torch.isfinite(opacity).all(dim=1)
+        )
+
+        gaussians.prune_points(mask)
+
+#
+
+        extent = scene.cameras_extent
+        xyz = gaussians.get_xyz
+
+        mask = (xyz.abs().max(dim=1).values > extent)
+
+        gaussians.prune_points(mask)
+
+#
+        scaling = gaussians.get_scaling
+        max_scale = 0.5 * scene.cameras_extent  # or any threshold
+
+
+        mask = scaling.max(dim=1).values > max_scale
+
+        gaussians.prune_points(mask)
+
+#
+
+        mask = scaling.min(dim=1).values < 1e-8
+
+        gaussians.prune_points(mask)
+
+#
+
+        opacity = gaussians.get_opacity
+        mask = (opacity.squeeze() < 0.01)
+
+        gaussians.prune_points(mask)
+
+        gaussians._scaling.data.clamp_(min=1e-4, max=1.0)
+        gaussians._opacity.data.clamp_(1e-4, 0.99)
+        gaussians._rotation.data = gaussians._rotation.data / gaussians._rotation.data.norm(dim=1, keepdim=True)
+        # degree-0 features (RGB bias)
+        gaussians._features_dc.data.clamp_(-5.0, 5.0)
+
+        # higher-order SH components
+        gaussians._features_rest.data.clamp_(-5.0, 5.0)
+########################
 
         # fullsize sampling for transient
         render_pkg_fullsize = render(viewpoint_cam_fullsize, gaussians, pipe, background, patch_size)
@@ -389,7 +431,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         loss.backward()
         iter_end.record()
-        
+
         with torch.no_grad():
             # Progress bar
             ema_loss_for_log = 0.4 * loss_rgb.item() + 0.6 * ema_loss_for_log
@@ -445,55 +487,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gaussians.optimizer.step()
                 gaussians.optimizer.zero_grad() 
 
-######
-
-                xyz = gaussians.get_xyz
-                scaling = gaussians.get_scaling
-                opacity = gaussians.get_opacity
-
-                mask = (
-                    ~torch.isfinite(xyz).all(dim=1) |
-                    ~torch.isfinite(scaling).all(dim=1) |
-                    ~torch.isfinite(opacity).all(dim=1)
-                )
-
-                gaussians.prune_points(mask)
-
-#
-
-                extent = scene.cameras_extent
-                xyz = gaussians.get_xyz
-
-                mask = (xyz.abs().max(dim=1).values > extent)
-
-                gaussians.prune_points(mask)
-
-#
-                scaling = gaussians.get_scaling
-                max_scale = 0.5 * scene.cameras_extent  # or any threshold
-
-                mask = scaling.max(dim=1).values > max_scale
-
-                gaussians.prune_points(mask)
-
-#
-
-                mask = scaling.min(dim=1).values < 1e-8
-
-                gaussians.prune_points(mask)
-
-#
-
-                opacity = gaussians.get_opacity
-                mask = (opacity.squeeze() < 0.01)
-
-                gaussians.prune_points(mask)
-
-######
-
                 with torch.no_grad():
                     # clamp raw log-scales to a sane range
-                    gaussians._scaling.clamp_(min=-6.0, max=2.0)
+                    gaussians._scaling.data.clamp_(min=-6.2, max=-3.9)
                     # optional: make sure opacity stays finite too
                     gaussians._opacity.clamp_(min=-10.0, max=10.0)
 

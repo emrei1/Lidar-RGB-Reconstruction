@@ -449,6 +449,11 @@ renderCUDA(
 	float D_buffer[D_buffer_size], W_buffer[D_buffer_size], depth_temp,
 	      axDif_buffer[D_buffer_size * 2], pid_buffer[D_buffer_size];
 
+        for (int i = 0; i < D_buffer_size; i++){
+            W_buffer[i] = 0.0f;
+            D_buffer[i] = 0.0f;
+        }
+
 	// Iterate over batches until all done or range is complete
 	for (int i = 0; i < rounds; i++, toDo -= BLOCK_SIZE)
 	{
