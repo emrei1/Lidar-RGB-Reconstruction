@@ -456,21 +456,18 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 #                gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent)
 
             # densification 
-            if iteration > opt.transi_only_until:
+            #if iteration > opt.transi_only_until:
                 #gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
             #    gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
-                min_opac = 0.1
-                if iteration % opt.densification_interval == 0:
-                    gaussians.adaptive_prune(min_opac, scene.cameras_extent)
-                    gaussians.adaptive_densify(opt.densify_grad_threshold, scene.cameras_extent)
+             #   min_opac = 0.1
+              #  if iteration % opt.densification_interval == 0:
+               #     gaussians.adaptive_prune(min_opac, scene.cameras_extent)
+                #    gaussians.adaptive_densify(opt.densify_grad_threshold, scene.cameras_extent)
             #    if iteration % cull_every == 0:
              #       pruned_data = gaussians.prune_large_gaussians(cull_over)
              #       gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent, N=opt.prune_replace)
-                if (iteration-1) % opt.opacity_reset_interval == 0 and opt.opacity_lr > 0:
-                    gaussians.reset_opacity(0.12, iteration)
-
-
-            
+                #if (iteration-1) % opt.opacity_reset_interval == 0 and opt.opacity_lr > 0:
+                 #   gaussians.reset_opacity(0.12, iteration)
 
             if iteration > 1 and (iteration - 1) % opt.train_viz_update == 0: #4999 == 0:
                 print("Saving to test folder")
