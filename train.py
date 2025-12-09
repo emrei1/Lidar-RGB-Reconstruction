@@ -271,6 +271,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             scale_H = H_pred // H_gt
             scale_W = W_pred // W_gt
 
+
+
+          #  pdb.set_trace()
+
+
             depth_histogram_downscaled = depth_histogram.view(
                 transi_bins, H_gt, scale_H, W_gt, scale_W
             ).sum(dim=(2, 4)) 

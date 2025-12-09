@@ -20,6 +20,7 @@ from pytorch3d.io import IO
 from plyfile import PlyData, PlyElement
 from tqdm import tqdm
 from pytorch3d.ops import knn_points
+import pdb
 
 def cutoff_act(x, low=0.1, high=12):
     return low + (high - low) * torch.sigmoid(x)
@@ -220,6 +221,7 @@ def poisson_mesh(path, vtx, normal, color, depth, thrsh):
     pts = pymeshlab.Mesh(vtx.cpu().numpy(), [], normal.cpu().numpy())
     ms.add_mesh(pts)
 
+    pdb.set_trace()
 
     # poisson reconstruction
     ms.generate_surface_reconstruction_screened_poisson(depth=depth, preclean=True, samplespernode=1.5)
@@ -227,6 +229,7 @@ def poisson_mesh(path, vtx, normal, color, depth, thrsh):
     face = ms.current_mesh().face_matrix()
     ms.save_current_mesh(path + '_plain.ply')
 
+    pdb.set_trace()
 
     pbar.update(1)
     pbar.set_description('Mesh refining')
@@ -236,10 +239,14 @@ def poisson_mesh(path, vtx, normal, color, depth, thrsh):
     nn_idx = nn_idx[0]
     nn_color = torch.mean(color[nn_idx], axis=1)
 
+    pdb.set_trace()
+
     # create mesh with color and quality (distance to the closest sampled points)
     vert_color = nn_color.clip(0, 1).cpu().numpy()
     vert_color = np.concatenate([vert_color, np.ones_like(vert_color[:, :1])], 1)
     ms.add_mesh(pymeshlab.Mesh(vert, face, v_color_matrix=vert_color, v_scalar_array=nn_dist[:, 0].cpu().numpy()))
+
+    pdb.set_trace()
 
     pbar.update(1)
     pbar.set_description('Mesh cleaning')
@@ -247,9 +254,13 @@ def poisson_mesh(path, vtx, normal, color, depth, thrsh):
     ms.compute_selection_by_condition_per_vertex(condselect=f"q>{thrsh}")
     ms.meshing_remove_selected_vertices()
 
+    pdb.set_trace()
+
     # fill holes
     ms.meshing_close_holes(maxholesize=300)
     ms.save_current_mesh(path + '_pruned.ply')
+
+    pdb.set_trace()
 
     # smoothing, correct boundary aliasing due to pruning
     ms.load_new_mesh(path + '_pruned.ply')

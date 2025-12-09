@@ -19,6 +19,7 @@ import pymeshlab
 import time
 from utils.io_utils import save_as_exr
 from scipy.io import savemat
+import pdb
 
 # Adapted from https://github.com/pytorch/pytorch/issues/99719#issuecomment-1664135524 
 def batch_histogram(timing_data, weights, t_min, t_max, num_bins):
@@ -105,7 +106,9 @@ def render_set(model_path, use_mask, name, iteration, views, gaussians, pipeline
     if name == 'train':
         resampled = torch.cat(resampled, 0)
         mesh_path = f'{model_path}/poisson_mesh_{poisson_depth}'
-        
+
+        print("mesh path is : " + mesh_path)
+
         poisson_mesh(mesh_path, resampled[:, :3], resampled[:, 3:6], resampled[:, 6:], poisson_depth, 3 * 1e-5)
 
 
