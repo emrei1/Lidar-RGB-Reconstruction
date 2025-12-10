@@ -21,6 +21,7 @@ from plyfile import PlyData, PlyElement
 from tqdm import tqdm
 from pytorch3d.ops import knn_points
 import pdb
+import open3d as o3d
 
 def cutoff_act(x, low=0.1, high=12):
     return low + (high - low) * torch.sigmoid(x)
@@ -208,65 +209,72 @@ def knn_pcl(pcl0, pcl1, feat, K):
     nn_feat = torch.mean(feat[nn_idx], axis=1)
     return nn_vtx, nn_feat
 
-
-
 def poisson_mesh(path, vtx, normal, color, depth, thrsh):
-
     pbar = tqdm(total=4)
     pbar.update(1)
     pbar.set_description('Poisson meshing')
 
-    # create pcl with normal from sampled points
-    ms = pymeshlab.MeshSet()
-    pts = pymeshlab.Mesh(vtx.cpu().numpy(), [], normal.cpu().numpy())
-    ms.add_mesh(pts)
+    # 1. Convert to Open3D point cloud
+    pcd = o3d.geometry.PointCloud()
+    pcd.points  = o3d.utility.Vector3dVector(vtx.cpu().numpy())
+    pcd.normals = o3d.utility.Vector3dVector(normal.cpu().numpy())
 
-    pdb.set_trace()
+    # 2. Fast Poisson reconstruction in Open3D
+    mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
+        pcd,
+        depth=depth
+    )
 
-    # poisson reconstruction
-    ms.generate_surface_reconstruction_screened_poisson(depth=depth, preclean=True, samplespernode=1.5)
-    vert = ms.current_mesh().vertex_matrix()
-    face = ms.current_mesh().face_matrix()
-    ms.save_current_mesh(path + '_plain.ply')
+    # Save raw mesh
+    o3d.io.write_triangle_mesh(path + "_plain.ply", mesh)
 
-    pdb.set_trace()
+    ### ----- COLOR TRANSFER USING KNN (same as original) -----
 
-    pbar.update(1)
-    pbar.set_description('Mesh refining')
-    # knn to compute distance and color of poisson-meshed points to sampled points
-    nn_dist, nn_idx, _ = knn_points(torch.from_numpy(vert).to(torch.float32).cuda()[None], vtx.cuda()[None], K=4)
-    nn_dist = nn_dist[0]
-    nn_idx = nn_idx[0]
-    nn_color = torch.mean(color[nn_idx], axis=1)
-
-    pdb.set_trace()
-
-    # create mesh with color and quality (distance to the closest sampled points)
-    vert_color = nn_color.clip(0, 1).cpu().numpy()
-    vert_color = np.concatenate([vert_color, np.ones_like(vert_color[:, :1])], 1)
-    ms.add_mesh(pymeshlab.Mesh(vert, face, v_color_matrix=vert_color, v_scalar_array=nn_dist[:, 0].cpu().numpy()))
-
-    pdb.set_trace()
+    vert = np.asarray(mesh.vertices)
+    face = np.asarray(mesh.triangles)
 
     pbar.update(1)
-    pbar.set_description('Mesh cleaning')
-    # prune outlying vertices and faces in poisson mesh
-    ms.compute_selection_by_condition_per_vertex(condselect=f"q>{thrsh}")
-    ms.meshing_remove_selected_vertices()
+    pbar.set_description("Mesh refining")
 
-    pdb.set_trace()
+    # Convert vertices to torch for KNN
+    vert_torch = torch.from_numpy(vert).float().cuda()[None]
+    vtx_torch  = vtx.float().cuda()[None]
+    color_cuda = color.float().cuda()     # <-- ADD THIS
 
-    # fill holes
-    ms.meshing_close_holes(maxholesize=300)
-    ms.save_current_mesh(path + '_pruned.ply')
+    # KNN search
+    nn_dist, nn_idx, _ = knn_points(vert_torch, vtx_torch, K=4)
 
-    pdb.set_trace()
+    nn_idx = nn_idx[0]      # shape: (Nv, 4)
 
-    # smoothing, correct boundary aliasing due to pruning
-    ms.load_new_mesh(path + '_pruned.ply')
-    ms.apply_coord_laplacian_smoothing(stepsmoothnum=3, boundary=True)
-    ms.save_current_mesh(path + '_pruned.ply')
-    
+    # Use CUDA for indexing
+    nn_color = torch.mean(color_cuda[nn_idx], dim=1)
+
+    # Convert back to numpy for Open3D
+    nn_color = nn_color.clip(0, 1).cpu().numpy()
+
+    # BGR for Open3D
+    mesh.vertex_colors = o3d.utility.Vector3dVector(nn_color)
+
+    ### ----- PRUNING BASED ON DISTANCE THRESHOLD -----
+
     pbar.update(1)
+    pbar.set_description("Mesh cleaning")
+
+    # Remove vertices with large distance to samples
+    keep_mask = (nn_dist[:, 0].cpu().numpy() < thrsh)
+
+    # Create cleaned mesh
+    cleaned_mesh = mesh.select_by_index(np.where(keep_mask)[0])
+
+    # Save pruned mesh
+    o3d.io.write_triangle_mesh(path + "_pruned.ply", cleaned_mesh)
+
+    ### ----- OPTIONAL SMOOTHING -----
+
+    pbar.update(1)
+    pbar.set_description("Smoothing")
+
+    smoothed = cleaned_mesh.filter_smooth_simple(number_of_iterations=3)
+    o3d.io.write_triangle_mesh(path + "_pruned.ply", smoothed)
+
     pbar.close()
-
