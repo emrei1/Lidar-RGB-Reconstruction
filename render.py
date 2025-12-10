@@ -28,7 +28,7 @@ def batch_histogram(timing_data, weights, t_min, t_max, num_bins):
         hist = torch.zeros((num_bins,*timing_quant.shape[1:]), dtype=timing_data.dtype, device=timing_data.device)
         hist.scatter_add_(0, timing_quant, weights)
         return hist
-                                                                                                                            
+
 def render_set(model_path, use_mask, name, iteration, views, gaussians, pipeline, background, write_image, poisson_depth):
     render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
     gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
@@ -105,12 +105,35 @@ def render_set(model_path, use_mask, name, iteration, views, gaussians, pipeline
 
     if name == 'train':
         resampled = torch.cat(resampled, 0)
-        mesh_path = f'{model_path}/poisson_mesh_{poisson_depth}'
 
+    # -------------------------
+    # ⭐ SAMPLE ONLY 30% OF POINTS
+    # -------------------------
+        keep_fraction = 0.0000003
+        N = resampled.shape[0]
+        keep_N = int(N * keep_fraction)
+
+        print(f"[Downsampling] Keeping {keep_N} out of {N} points ({keep_fraction * 100:.1f}%).")
+
+        idx = torch.randperm(N)[:keep_N]   # random subset
+        resampled = resampled[idx]         # apply sampling
+    # -------------------------
+
+        mesh_path = f'{model_path}/poisson_mesh_{poisson_depth}'
         print("mesh path is : " + mesh_path)
 
-        poisson_mesh(mesh_path, resampled[:, :3], resampled[:, 3:6], resampled[:, 6:], poisson_depth, 3 * 1e-5)
-
+    # columns:
+    # [:3]  = xyz
+    # [3:6] = normals
+    # [6:]  = colors (or features)
+        poisson_mesh(
+            mesh_path,
+            resampled[:, :3],
+            resampled[:, 3:6],
+            resampled[:, 6:],
+            poisson_depth,
+            3 * 1e-5
+        )
 
 
 def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool, write_image: bool, poisson_depth: int):
