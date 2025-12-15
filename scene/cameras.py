@@ -20,6 +20,9 @@ class Camera(nn.Module):
         self.colmap_id = colmap_id
         self.R = torch.from_numpy(R)
         self.q = rotmat2quaternion(self.R[None], True)[0]
+
+       # pdb.set_trace()
+
         self.T = torch.from_numpy(T)
         self.FoVx = FoVx
         self.FoVy = FoVy

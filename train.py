@@ -127,7 +127,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         viewpoint_cam = viewpoint_stack.pop(randcam)
      
 
-        #pdb.set_trace()
+        viewpoint_cam.R = viewpoint_cam.R.T
+        viewpoint_cam_full_size = viewpoint_cam_fullsize.R.T
+
+        pdb.set_trace()
 
         # render
         if (iteration - 1) == debug_from:

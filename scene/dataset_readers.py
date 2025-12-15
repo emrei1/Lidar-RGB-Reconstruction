@@ -100,6 +100,8 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
 
         uid = intr.id
         R = np.transpose(qvec2rotmat(extr.qvec))
+      #  R = qvec2rotmat(extr.qvec)
+    #   pdb.set_trace()
         T = np.array(extr.tvec)
         if intr.model=="SIMPLE_PINHOLE":
             focal_length_x = intr.params[0]
