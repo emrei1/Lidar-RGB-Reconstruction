@@ -70,6 +70,10 @@ class Camera(nn.Module):
 
     def update(self):
         self.world_view_transform = getWorld2View(self.q, self.T, self.trans, self.scale).transpose(0, 1)
+        
+#        self.world_view_transform = getWorld2View(self.q, self.T, self.trans, self.scale)
+
+
         self.full_proj_transform = (self.world_view_transform.unsqueeze(0).bmm(self.projection_matrix.unsqueeze(0))).squeeze(0)
         (-self.T[None]@self.world_view_transform[:3, :3].t())[0]
         self.camera_center = (-self.T[None]@self.world_view_transform[:3, :3].t())[0]
