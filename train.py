@@ -53,6 +53,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     
     scene = Scene(dataset, gaussians, opt.camera_lr, shuffle=False, resolution_scales=[1, 2, 5])
 
+
+
+#    pdb.set_trace()
+
     use_mask = dataset.use_mask
     gaussians.training_setup(opt)
     if checkpoint:
@@ -147,67 +151,6 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
 
         
-        #print("First camera center:", viewpoint_cam.camera_center)
-        #print("XYZ min:", gaussians.get_xyz.min(dim=0).values)
-        #print("XYZ max:", gaussians.get_xyz.max(dim=0).values)
-        #s = gaussians.get_scaling
-        #print("> 0.2:", (s > 0.2).sum().item())
-        #print("> 0.5:", (s > 0.5).sum().item())
-        #print("> 1.0:", (s > 1.0).sum().item())
-        #print("> 2.0:", (s > 2.0).sum().item())
-
-        #s = gaussians.get_scaling
-        #print("Scaling min/mean/max:", s.min().item(), s.mean().item(), s.max().item())
-
-        #print("Visible Gaussians:", visibility_filter.sum().item())
-       # print("Min/Max radii:", render_pkg["radii"].min().item(), render_pkg["radii"].max().item())
-
-########################
-#
- #       xyz = gaussians.get_xyz
-  #      scaling = gaussians.get_scaling
- #       opacity = gaussians.get_opacity
- 
-  #      mask = (
-   #           ~torch.isfinite(xyz).all(dim=1) |
-    #        ~torch.isfinite(scaling).all(dim=1) |
-     #       ~torch.isfinite(opacity).all(dim=1)
-      #  )
-
-       # gaussians.prune_points(mask)
-
-#
-
-#        extent = scene.cameras_extent
- #       xyz = gaussians.get_xyz
-
-  #      mask = (xyz.abs().max(dim=1).values > extent)
-
-   #     gaussians.prune_points(mask)
-
-#
-    #    scaling = gaussians.get_scaling
-     #   max_scale = 0.5 * scene.cameras_extent  # or any threshold
-
-#
-#        mask = scaling.max(dim=1).values > max_scale
-
- #       gaussians.prune_points(mask)
-
-#
-
-  #      mask = scaling.min(dim=1).values < 1e-8
-
-   #     gaussians.prune_points(mask)
-
-#
-
-    #    opacity = gaussians.get_opacity
-     #   mask = (opacity.squeeze() < 0.01)
-
-      #  gaussians.prune_points(mask)
-#"""
-########################
 
         # fullsize sampling for transient
         render_pkg_fullsize = render(viewpoint_cam_fullsize, gaussians, pipe, background, patch_size)
@@ -254,7 +197,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
             #print("depth_buffer mean:", depth_buffer.mean().item())
 
-#            pdb.set_trace()
+            pdb.set_trace()
 
 
             depth_histogram = batch_histogram(depth_buffer, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)

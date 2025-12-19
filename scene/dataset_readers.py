@@ -98,17 +98,24 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         # print(image_path)
         image = Image.open(image_path)
 
+       # pdb.set_trace()
+
         uid = intr.id
         R = np.transpose(qvec2rotmat(extr.qvec))
       #  R = qvec2rotmat(extr.qvec)
     #   pdb.set_trace()
+
         T = np.array(extr.tvec)
         if intr.model=="SIMPLE_PINHOLE":
             focal_length_x = intr.params[0]
+
+            pdb.set_trace()
+
             FovY = focal2fov(focal_length_x, height)
             FovX = focal2fov(focal_length_x, width)
             prcppoint = np.array([intr.params[1] / width, intr.params[2] / height])
         elif intr.model=="PINHOLE":
+            pdb.set_trace()
             focal_length_x = intr.params[0]
             focal_length_y = intr.params[1]
             FovY = focal2fov(focal_length_y, height)
@@ -179,6 +186,9 @@ def storePly(path, xyz, rgb, normal=None):
             ('red', 'u1'), ('green', 'u1'), ('blue', 'u1')]
     
     normals = np.zeros_like(xyz) if normal is None else normal
+
+
+#    pdb.set_trace()
 
     elements = np.empty(xyz.shape[0], dtype=dtype)
     attributes = np.concatenate((xyz, normals, rgb), axis=1)
