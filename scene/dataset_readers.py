@@ -101,21 +101,23 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
        # pdb.set_trace()
 
         uid = intr.id
-        R = np.transpose(qvec2rotmat(extr.qvec))
-      #  R = qvec2rotmat(extr.qvec)
+       # R = np.transpose(qvec2rotmat(extr.qvec))
+        R = qvec2rotmat(extr.qvec)
     #   pdb.set_trace()
+
+        R = extr.W2C
 
         T = np.array(extr.tvec)
         if intr.model=="SIMPLE_PINHOLE":
             focal_length_x = intr.params[0]
 
-            pdb.set_trace()
+ #           pdb.set_trace()
 
             FovY = focal2fov(focal_length_x, height)
             FovX = focal2fov(focal_length_x, width)
             prcppoint = np.array([intr.params[1] / width, intr.params[2] / height])
         elif intr.model=="PINHOLE":
-            pdb.set_trace()
+#            pdb.set_trace()
             focal_length_x = intr.params[0]
             focal_length_y = intr.params[1]
             FovY = focal2fov(focal_length_y, height)

@@ -7,7 +7,7 @@ CameraModel = collections.namedtuple(
 Camera = collections.namedtuple(
     "Camera", ["id", "model", "width", "height", "params"])
 BaseImage = collections.namedtuple(
-    "Image", ["id", "qvec", "tvec", "camera_id", "name", "xys", "point3D_ids"])
+    "Image", ["id", "qvec", "tvec", "camera_id", "name", "xys", "point3D_ids", "W2C"])
 Point3D = collections.namedtuple(
     "Point3D", ["id", "xyz", "rgb", "error", "image_ids", "point2D_idxs"])
 CAMERA_MODELS = {
@@ -232,6 +232,10 @@ def read_extrinsics_text(path):
             if len(line) > 0 and line[0] != "#":
                 elems = line.split()
                 image_id = int(elems[0])
+
+                W2C_vec = np.array(tuple(map(float, elems[1:18])))
+                W2C = W2C_vec.reshape((4, 4))
+
                 qvec = np.array(tuple(map(float, elems[1:5])))
                 tvec = np.array(tuple(map(float, elems[5:8])))
                 camera_id = int(elems[8])
@@ -243,7 +247,7 @@ def read_extrinsics_text(path):
                 images[image_id] = Image(
                     id=image_id, qvec=qvec, tvec=tvec,
                     camera_id=camera_id, name=image_name,
-                    xys=xys, point3D_ids=point3D_ids)
+                    xys=xys, point3D_ids=point3D_ids, W2C = W2C)
     return images
 
 
