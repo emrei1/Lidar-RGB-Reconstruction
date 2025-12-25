@@ -18,7 +18,7 @@ class Camera(nn.Module):
 
         self.uid = uid
         self.colmap_id = colmap_id
-        self.R = torch.from_numpy(R)
+        self.R = torch.from_numpy(R).T
         self.q = rotmat2quaternion(self.R[None], True)[0]
 
        # pdb.set_trace()
@@ -69,21 +69,21 @@ class Camera(nn.Module):
         self.to_cpu()
 
     def update(self):
-        self.world_view_transform = R #getWorld2View(self.q, self.T, self.trans, self.scale)
+        self.world_view_transform = self.R.to('cuda').float() #getWorld2View(self.q, self.T, self.trans, self.scale)
         
 #        self.world_view_transform = getWorld2View(self.q, self.T, self.trans, self.scale)
 
         self.full_proj_transform = (self.world_view_transform.unsqueeze(0).bmm(self.projection_matrix.unsqueeze(0))).squeeze(0)
         (-self.T[None]@self.world_view_transform[:3, :3].t())[0]
-        self.camera_center = (-self.T[None]@self.world_view_transform[:3, :3].t())[0]
+      #  self.camera_center = (-self.T[None]@self.world_view_transform[:3, :3].t())[0]
         #pdb.set_trace()
-        self.camera_center = -self.R.T.cpu().detach().numpy() @ self.T.cpu().detach().numpy()
-        self.camera_center = torch.from_numpy(self.camera_center).to('cuda')
-        self.camera_center = self.camera_center.float()
+       # self.camera_center = -self.R.T.cpu().detach().numpy() @ self.T.cpu().detach().numpy()
+       # self.camera_center = torch.from_numpy(self.camera_center).to('cuda')
+       # self.camera_center = self.camera_center.float()
 
 
-        R = rotmat[:3, :3]   # rotation matrix (3x3)
-        t = rotmat[:3, 3]
+        R = self.world_view_transform[:3, :3]   # rotation matrix (3x3)
+        t = self.world_view_transform[:3, 3]
         self.camera_center = -R.T @ t
 
     def to_device(self, device=None):

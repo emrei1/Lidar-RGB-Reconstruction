@@ -233,13 +233,13 @@ def read_extrinsics_text(path):
                 elems = line.split()
                 image_id = int(elems[0])
 
-                W2C_vec = np.array(tuple(map(float, elems[1:18])))
+                W2C_vec = np.array(tuple(map(float, elems[1:17])))
                 W2C = W2C_vec.reshape((4, 4))
 
                 qvec = np.array(tuple(map(float, elems[1:5])))
                 tvec = np.array(tuple(map(float, elems[5:8])))
-                camera_id = int(elems[8])
-                image_name = elems[9]
+                camera_id = int(elems[17])
+                image_name = elems[18]
                 elems = fid.readline().split()
                 xys = np.column_stack([tuple(map(float, elems[0::3])),
                                        tuple(map(float, elems[1::3]))])
