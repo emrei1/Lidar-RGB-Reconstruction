@@ -55,7 +55,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
 
 
-#    pdb.set_trace()
+    pdb.set_trace()
 
     use_mask = dataset.use_mask
     gaussians.training_setup(opt)
@@ -65,6 +65,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     elif use_mask: # visual hull init
         gaussians.mask_prune(scene.getTrainCameras(), 4)
         None
+
+    pdb.set_trace()
+
 
     opt.densification_interval = max(opt.densification_interval, len(scene.getTrainCameras()))
 
@@ -94,6 +97,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     iter_end = torch.cuda.Event(enable_timing = True)
     pool = torch.nn.MaxPool2d(9, stride=1, padding=4)
 
+    pdb.set_trace()
+
+
     viewpoint_stack = None
     viewpoint_stack_fullsize = None
     ema_loss_for_log = 0.0
@@ -104,7 +110,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         iter_start.record()
 
-        #pdb.set_trace()
+        pdb.set_trace()
 
 
         gaussians.update_learning_rate(iteration)
@@ -150,7 +156,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             render_pkg["viewspace_points"], render_pkg["visibility_filter"]
 
 
-        
+        pdb.set_trace()
 
         # fullsize sampling for transient
         render_pkg_fullsize = render(viewpoint_cam_fullsize, gaussians, pipe, background, patch_size)

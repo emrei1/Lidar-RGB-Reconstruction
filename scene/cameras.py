@@ -21,6 +21,13 @@ class Camera(nn.Module):
         self.R = torch.from_numpy(R).T
         self.q = rotmat2quaternion(self.R[None], True)[0]
 
+
+        Fz = torch.from_numpy(np.diag([1.0, 1.0, 1.0, 1.0]))
+
+        # IMPORTANT: left-multiply (camera-space flip)
+        self.R = Fz @ self.R
+
+
        # pdb.set_trace()
 
         self.T = torch.from_numpy(T)
