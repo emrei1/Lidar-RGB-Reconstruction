@@ -89,7 +89,7 @@ class Scene:
         self.gaussians.config.append(camera_lr > 0)
         self.gaussians.config = torch.tensor(self.gaussians.config, dtype=torch.float32, device="cuda")
 
-        pdb.set_trace()
+#        pdb.set_trace()
 
 
     def save(self, iteration):

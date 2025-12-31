@@ -25,7 +25,7 @@ class Camera(nn.Module):
         Fz = torch.from_numpy(np.diag([1.0, 1.0, 1.0, 1.0]))
 
         # IMPORTANT: left-multiply (camera-space flip)
-        self.R = Fz @ self.R
+#        self.R = Fz @ self.R
 
 
        # pdb.set_trace()
@@ -65,7 +65,7 @@ class Camera(nn.Module):
         self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
 
         self.prcppoint = torch.tensor(prcppoint).to(torch.float32)#.cuda()
-        self.projection_matrix = getProjectionMatrix(self.znear, self.zfar, FoVx, FoVy, self.image_width, self.image_height, prcppoint).transpose(0,1).to(data_device)
+        self.projection_matrix = getProjectionMatrix(self.znear, self.zfar, FoVx, FoVy, self.image_width, self.image_height, prcppoint).transpose(0, 1).to(data_device)
 
         self.update()
 
@@ -76,7 +76,7 @@ class Camera(nn.Module):
         self.to_cpu()
 
     def update(self):
-        self.world_view_transform = self.R.to('cuda').float() #getWorld2View(self.q, self.T, self.trans, self.scale)
+        self.world_view_transform = self.R.T.to('cuda').float() #getWorld2View(self.q, self.T, self.trans, self.scale)
         
 #        self.world_view_transform = getWorld2View(self.q, self.T, self.trans, self.scale)
 
@@ -87,7 +87,6 @@ class Camera(nn.Module):
        # self.camera_center = -self.R.T.cpu().detach().numpy() @ self.T.cpu().detach().numpy()
        # self.camera_center = torch.from_numpy(self.camera_center).to('cuda')
        # self.camera_center = self.camera_center.float()
-
 
         R = self.world_view_transform[:3, :3]   # rotation matrix (3x3)
         t = self.world_view_transform[:3, 3]
