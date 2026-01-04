@@ -55,7 +55,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
 
 
-    pdb.set_trace()
+   # pdb.set_trace()
 
     use_mask = dataset.use_mask
     gaussians.training_setup(opt)
@@ -66,7 +66,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gaussians.mask_prune(scene.getTrainCameras(), 4)
         None
 
-    pdb.set_trace()
+   # pdb.set_trace()
 
 
     opt.densification_interval = max(opt.densification_interval, len(scene.getTrainCameras()))
@@ -97,7 +97,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     iter_end = torch.cuda.Event(enable_timing = True)
     pool = torch.nn.MaxPool2d(9, stride=1, padding=4)
 
-    pdb.set_trace()
+   # pdb.set_trace()
 
 
     viewpoint_stack = None
@@ -110,7 +110,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         iter_start.record()
 
-        pdb.set_trace()
+  #      pdb.set_trace()
 
 
         gaussians.update_learning_rate(iteration)
@@ -156,7 +156,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             render_pkg["viewspace_points"], render_pkg["visibility_filter"]
 
 
-        pdb.set_trace()
+ #       pdb.set_trace()
 
         # fullsize sampling for transient
         render_pkg_fullsize = render(viewpoint_cam_fullsize, gaussians, pipe, background, patch_size)
@@ -203,7 +203,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
             #print("depth_buffer mean:", depth_buffer.mean().item())
 
-            pdb.set_trace()
+#            pdb.set_trace()
 
 
             depth_histogram = batch_histogram(depth_buffer, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)

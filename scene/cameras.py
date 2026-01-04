@@ -65,7 +65,7 @@ class Camera(nn.Module):
         self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
 
         self.prcppoint = torch.tensor(prcppoint).to(torch.float32)#.cuda()
-        self.projection_matrix = getProjectionMatrix(self.znear, self.zfar, FoVx, FoVy, self.image_width, self.image_height, prcppoint).to(data_device)
+        self.projection_matrix = getProjectionMatrix(self.znear, self.zfar, FoVx, FoVy, self.image_width, self.image_height, prcppoint).transpose(0, 1).to(data_device)
 
         self.update()
 

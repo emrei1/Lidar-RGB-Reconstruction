@@ -15,6 +15,9 @@ from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianR
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
 
+
+import pdb
+
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, patch_size: list, scaling_modifier = 1.0, override_color = None):
     """
     Render the scene. 
@@ -36,6 +39,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
     tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
 
+#    pdb.set_trace()
 
     raster_settings = GaussianRasterizationSettings(
         image_height=int(viewpoint_camera.image_height),
@@ -44,8 +48,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         tanfovy=tanfovy,
         bg=bg_color,
         scale_modifier=scaling_modifier,
-        viewmatrix=viewpoint_camera.world_view_transform.T,
-        projmatrix=viewpoint_camera.full_proj_transform.T,
+        viewmatrix=viewpoint_camera.world_view_transform.transpose(0, 1).contiguous(),
+        projmatrix=viewpoint_camera.world_view_transform.transpose(0, 1).contiguous() @ viewpoint_camera.projection_matrix.contiguous(),
         patch_bbox=viewpoint_camera.random_patch(patch_size[0], patch_size[1]),
         prcppoint=viewpoint_camera.prcppoint,
         sh_degree=pc.active_sh_degree,
@@ -60,6 +64,11 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     means3D = pc.get_xyz
     means2D = screenspace_points
     opacity = pc.get_opacity
+
+
+
+#    pdb.set_trace()
+
 
     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
     # scaling / rotation by the rasterizer.
