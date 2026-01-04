@@ -5,6 +5,7 @@ from utils.loss_utils import l1_loss, ssim, cos_loss, bce_loss, knn_smooth_loss
 from gaussian_renderer import render, network_gui
 import numpy as np
 import sys
+from utils.graphics_utils import getWorld2View, getWorld2View2, getProjectionMatrix, fov2focal
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 import uuid
@@ -42,6 +43,21 @@ def safe_normalize_hist(hist, eps=1e-8):
     return hist_norm
 
 
+def compute_ray_dirs(H, W, fx, fy, cx, cy, device):
+    ys, xs = torch.meshgrid(
+        torch.arange(H, device=device),
+        torch.arange(W, device=device),
+        indexing="ij"
+    )
+
+    x = (xs - cx) / fx
+    y = (ys - cy) / fy
+    z = torch.ones_like(x)
+
+    dirs = torch.stack([x, y, z], dim=0)
+    dirs = dirs / torch.norm(dirs, dim=0, keepdim=True)
+    return dirs  # [3, H, W]
+
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
     
 
@@ -53,7 +69,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     
     scene = Scene(dataset, gaussians, opt.camera_lr, shuffle=False, resolution_scales=[1, 2, 5])
 
-
+    transient_scale = torch.nn.Parameter(torch.tensor(1.0, device="cuda"))
 
    # pdb.set_trace()
 
@@ -137,8 +153,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         viewpoint_cam = viewpoint_stack.pop(randcam)
      
 
-        viewpoint_cam.R = viewpoint_cam.R.T
-        viewpoint_cam_full_size = viewpoint_cam_fullsize.R.T
+#        viewpoint_cam.R = viewpoint_cam.R.T
+       # viewpoint_cam_full_size = viewpoint_cam_fullsize.R.T
+
 
 #        pdb.set_trace()
 
@@ -156,7 +173,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             render_pkg["viewspace_points"], render_pkg["visibility_filter"]
 
 
- #       pdb.set_trace()
+#        pdb.set_trace()
 
         # fullsize sampling for transient
         render_pkg_fullsize = render(viewpoint_cam_fullsize, gaussians, pipe, background, patch_size)
@@ -169,7 +186,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gt_transi = viewpoint_cam.get_gtTransi() if viewpoint_cam.get_gtTransi() is not None else None
 
 
-        visibility_filter = (opac.detach() > 1e-5)
+#        visibility_filter = (opac.detach() > 1e-5)
+
+        
+       # pdb.set_trace()
+
 
 
      #   opac_buffer_nomask = torch.nan_to_num(
@@ -206,7 +227,49 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 #            pdb.set_trace()
 
 
-            depth_histogram = batch_histogram(depth_buffer, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)
+
+##################################
+##################################
+
+#            transient_scale = torch.nn.Parameter(torch.tensor(1.0, device="cuda"))
+
+
+#
+            z = depth_buffer_nomask  # already masked
+
+# Camera intrinsics (you already compute these elsewhere)
+  #          fx, fy = viewpoint_cam.fx, viewpoint_cam.fy
+ #           cx, cy = viewpoint_cam.cx, viewpoint_cam.cy
+
+
+            fx = fov2focal(viewpoint_cam.FoVx, viewpoint_cam.image_width)
+            fy = fov2focal(viewpoint_cam.FoVy, viewpoint_cam.image_height)
+            cx = viewpoint_cam.prcppoint[0] * viewpoint_cam.image_width
+            cy = viewpoint_cam.prcppoint[1] * viewpoint_cam.image_height
+
+
+            ray_dirs = compute_ray_dirs(
+                z.shape[-2],
+                z.shape[-1],
+                fx, fy, cx, cy,
+                device=z.device
+            )
+
+# Camera forward in camera space is (0,0,1)
+            cam_forward = torch.tensor([0, 0, 1], device=z.device)[:, None, None]
+
+            cos_theta = (ray_dirs * cam_forward).sum(dim=0).clamp(min=1e-6)
+
+            d_ray = z / cos_theta
+###################################
+###################################
+
+
+            d_ray_scaled = d_ray * transient_scale
+
+            depth_histogram2 = batch_histogram(d_ray, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)
+
+            depth_histogram = batch_histogram(d_ray_scaled, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)
 
 
             #print("depth buffer shape")
@@ -298,8 +361,28 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 # print("gaussians") 
            # print(len(gaussians._xyz))
 
+
+
+            pred_pix = depth_histogram_downscaled.sum(dim=0) > 1e-6
+            gt_pix   = gt_transi.sum(dim=0) > 1e-6
+            valid    = pred_pix & gt_pix
+
+            pred_log = normalized_depth_histogram_log[:, valid]
+            gt_norm  = normalized_gt_transi[:, valid]
+
+            transi_loss_full = torch.nn.functional.kl_div(
+                pred_log,
+                gt_norm,
+                reduction="batchmean"
+            )
+
+
+
+
+
+
             transi_weights = 1 - colorvar_weights_downscaled 
-            transi_loss_full = torch.nn.functional.kl_div(normalized_depth_histogram_log, normalized_gt_transi, reduction='sum')
+            #transi_loss_full = torch.nn.functional.kl_div(normalized_depth_histogram_log, normalized_gt_transi, reduction='sum')
 
             #opt.transi_only_until = 1
 

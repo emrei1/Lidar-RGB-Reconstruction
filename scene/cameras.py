@@ -92,6 +92,9 @@ class Camera(nn.Module):
         t = self.world_view_transform[:3, 3]
         self.camera_center = -R.T @ t
 
+        
+
+
     def to_device(self, device=None):
         device = self.data_device if device is None else device
         attr_dict = vars(self)

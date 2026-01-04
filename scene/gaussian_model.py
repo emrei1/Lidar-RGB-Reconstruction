@@ -14,6 +14,9 @@ from utils.graphics_utils import BasicPointCloud
 from utils.image_utils import world2scrn
 from utils.general_utils import strip_symmetric, build_scaling_rotation
 
+
+import pdb
+
 class GaussianModel:
 
 
@@ -227,6 +230,9 @@ class GaussianModel:
         self._opacity = nn.Parameter(opacities.requires_grad_(True))
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
         # exit()
+
+#        pdb.set_trace()
+
 
     def training_setup(self, training_args, extra_params=None):
         self.percent_dense = training_args.percent_dense
