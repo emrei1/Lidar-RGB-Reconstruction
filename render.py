@@ -109,7 +109,7 @@ def render_set(model_path, use_mask, name, iteration, views, gaussians, pipeline
     # -------------------------
     # ⭐ SAMPLE ONLY 30% OF POINTS
     # -------------------------
-        keep_fraction = 0.0012
+        keep_fraction = 0.00012
         N = resampled.shape[0]
         keep_N = int(N * keep_fraction)
 

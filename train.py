@@ -405,7 +405,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         # ==========
                 
         # Loss
-        if iteration > opt.transi_only_until: 
+        if iteration > opt.transi_only_until:
+
+
+            pdb.set_trace()
+
+
             if iteration % opt.intersperse_rgb == 0:
                 loss_kwargs = {}
             else: 
@@ -616,7 +621,7 @@ def main():
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[5_000, 10_000, 15_000, 20_000, 25_000, 30_000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[5_000, 10_000, 15_000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[300, 10_000, 15_000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)

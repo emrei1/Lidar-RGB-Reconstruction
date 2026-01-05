@@ -61,9 +61,9 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
 
-    means3D = pc.get_xyz
-    means2D = screenspace_points
-    opacity = pc.get_opacity
+    means3D = pc.get_xyz.contiguous().float()
+    means2D = screenspace_points.contiguous()
+    opacity = pc.get_opacity.contiguous().float()
 
 
 
@@ -78,8 +78,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     if pipe.compute_cov3D_python:
         cov3D_precomp = pc.get_covariance(scaling_modifier)
     else:
-        scales = pc.get_scaling
-        rotations = pc.get_rotation
+        scales = pc.get_scaling.contiguous().float()
+        rotations = pc.get_rotation.contiguous().float()
     # print(pc._scaling)
     # print(scales)
     # # print(rotations)
@@ -112,6 +112,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         rotations = rotations,
         cov3D_precomp = cov3D_precomp
     )
+
+    torch.cuda.synchronize()
 
     # Unpack depending on the number of outputs
     if len(outputs) == 7:
