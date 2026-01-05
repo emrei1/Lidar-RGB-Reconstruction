@@ -129,6 +129,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
   #      pdb.set_trace()
 
 
+
+        
+       # pdb.set_trace()
+
         gaussians.update_learning_rate(iteration)
 
         # Every 1000 its we increase the levels of SH up to a maximum degree
@@ -271,6 +275,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
             depth_histogram = batch_histogram(d_ray_scaled, opac_buffer, opt.hist_near, opt.hist_far, opt.num_hist_bins)
 
+            
+            depth_histogram = depth_buffer
 
             #print("depth buffer shape")
             #print(depth_buffer.shape)
@@ -294,6 +300,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             depth_histogram_downscaled = depth_histogram.view(
                 transi_bins, H_gt, scale_H, W_gt, scale_W
             ).sum(dim=(2, 4)) 
+
+
+            pdb.set_trace()
 
             #dh = depth_histogram  # tensor
 
