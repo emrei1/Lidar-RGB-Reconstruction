@@ -26,6 +26,8 @@ except ImportError:
 import ot
 import pdb
 
+import torch.nn.functional as F
+
 def safe_normalize_hist(hist, eps=1e-8):
     """
     Normalizes histogram along bin dimension, returns shape (B, H, W).
@@ -172,9 +174,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         # coarse to fine sampling 
         render_pkg = render(viewpoint_cam, gaussians, pipe, background, patch_size, scaling_modifier = 0.05)
-        image, normal, depth, _, opac, _, viewspace_point_tensor, visibility_filter = \
+        image, normal, depth, _, opac, _, viewspace_point_tensor, visibility_filter, radii = \
             render_pkg["render"], render_pkg["normal"], render_pkg["depth"], render_pkg["depth_buffer"], render_pkg["opac"], render_pkg["opac_buffer"], \
-            render_pkg["viewspace_points"], render_pkg["visibility_filter"]
+            render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg['radii']
 
 
 #        pdb.set_trace()
@@ -298,6 +300,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             device = depth_buffer.device
             K, H, W = depth_buffer.shape
 
+
+            lidar_H = 32
+            lidar_W = 32
+
+
+
     # --------------------------------------------------
     # 1. First-hit depth per pixel (closest non-zero)
     # --------------------------------------------------
@@ -321,15 +329,15 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     # --------------------------------------------------
     # 3. Convert depth → histogram bin
     # --------------------------------------------------
-            bin_width = (hist_far - hist_near) / num_bins
+            bin_width = (opt.hist_far - opt.hist_near) / opt.num_hist_bins
 
-            bin_idx = ((first_depth_32 - hist_near) / bin_width).floor().long()
-            bin_idx = bin_idx.clamp(0, num_bins - 1)
+            bin_idx = ((first_depth_32 - opt.hist_near) / bin_width).floor().long()
+            bin_idx = bin_idx.clamp(0, opt.num_hist_bins - 1)
 
     # --------------------------------------------------
     # 4. Create transient tensor (one-hot first return)
     # --------------------------------------------------
-            transi = torch.zeros((num_bins, lidar_H, lidar_W), device=device)
+            transi = torch.zeros((opt.num_hist_bins, lidar_H, lidar_W), device=device)
 
             valid_pixels = first_depth_32 > 0
             transi.scatter_(
@@ -467,7 +475,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         if iteration > opt.transi_only_until:
 
 
-            pdb.set_trace()
+#            pdb.set_trace()
 
 
             if iteration % opt.intersperse_rgb == 0:
@@ -554,24 +562,24 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             cull_over = opt.cull_over
             cull_every = opt.cull_every
 
- #           if iteration % cull_every == 0 and iteration < opt.transi_only_until:
-                #gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
-            #    pruned_data = gaussians.prune_large_gaussians(cull_over / opt.cull_over_transi_only)
-#                gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent)
+            if iteration % cull_every == 0 and iteration < opt.transi_only_until:
+                gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
+                pruned_data = gaussians.prune_large_gaussians(cull_over / opt.cull_over_transi_only)
+                gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent)
 
             # densification 
-            #if iteration > opt.transi_only_until:
-                #gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
-            #    gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
-             #   min_opac = 0.1
-              #  if iteration % opt.densification_interval == 0:
-               #     gaussians.adaptive_prune(min_opac, scene.cameras_extent)
-                #    gaussians.adaptive_densify(opt.densify_grad_threshold, scene.cameras_extent)
-            #    if iteration % cull_every == 0:
-             #       pruned_data = gaussians.prune_large_gaussians(cull_over)
-             #       gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent, N=opt.prune_replace)
-                #if (iteration-1) % opt.opacity_reset_interval == 0 and opt.opacity_lr > 0:
-                 #   gaussians.reset_opacity(0.12, iteration)
+            if iteration > opt.transi_only_until:
+                gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
+                gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
+                min_opac = 0.1
+                if iteration % opt.densification_interval == 0:
+                    gaussians.adaptive_prune(min_opac, scene.cameras_extent)
+                    gaussians.adaptive_densify(opt.densify_grad_threshold, scene.cameras_extent)
+                if iteration % cull_every == 0:
+                    pruned_data = gaussians.prune_large_gaussians(cull_over)
+                    gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent, N=opt.prune_replace)
+                if (iteration-1) % opt.opacity_reset_interval == 0 and opt.opacity_lr > 0:
+                    gaussians.reset_opacity(0.12, iteration)
 
             if iteration > 1 and (iteration - 1) % opt.train_viz_update == 0: #4999 == 0:
                 print("Saving to test folder")
@@ -680,7 +688,7 @@ def main():
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[5_000, 10_000, 15_000, 20_000, 25_000, 30_000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[300, 10_000, 15_000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[950, 2000, 15_000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)
