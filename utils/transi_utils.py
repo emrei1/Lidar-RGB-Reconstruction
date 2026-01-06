@@ -27,7 +27,7 @@ def batch_histogram(timing_data, weights, t_min, t_max, num_bins):
     timing_quant = ((timing_data - t_min) / bin_width)
 
 
-    pdb.set_trace()
+#    pdb.set_trace()
 
     valid_mask = (timing_data >= t_min) & (timing_data < t_max)
     timing_quant = timing_quant * valid_mask.float() 

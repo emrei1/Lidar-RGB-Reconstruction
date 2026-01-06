@@ -71,18 +71,18 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
     transient_scale = torch.nn.Parameter(torch.tensor(1.0, device="cuda"))
 
-   # pdb.set_trace()
+  #  pdb.set_trace()
 
     use_mask = dataset.use_mask
     gaussians.training_setup(opt)
-    if checkpoint:
-        (model_params, first_iter) = torch.load(checkpoint)
-        gaussians.restore(model_params, opt)
-    elif use_mask: # visual hull init
-        gaussians.mask_prune(scene.getTrainCameras(), 4)
-        None
+  #  if checkpoint:
+  #      (model_params, first_iter) = torch.load(checkpoint)
+  #      gaussians.restore(model_params, opt)
+ #   elif use_mask: # visual hull init
+   #     gaussians.mask_prune(scene.getTrainCameras(), 4)
+  #      None
 
-   # pdb.set_trace()
+  #  pdb.set_trace()
 
 
     opt.densification_interval = max(opt.densification_interval, len(scene.getTrainCameras()))
@@ -293,16 +293,66 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             scale_W = W_pred // W_gt
 
 
+            ###############################################
+            ###############################################
+            device = depth_buffer.device
+            K, H, W = depth_buffer.shape
+
+    # --------------------------------------------------
+    # 1. First-hit depth per pixel (closest non-zero)
+    # --------------------------------------------------
+    # Replace zeros with +inf so min() ignores them
+            depth_valid = depth_buffer.clone()
+            depth_valid[depth_valid <= 0] = float('inf')
+
+            first_depth, _ = depth_valid.min(dim=0)   # (H, W)
+
+    # If a pixel had no valid depth at all, reset to 0
+            first_depth[first_depth == float('inf')] = 0.0
+
+    # --------------------------------------------------
+    # 2. Downsample to LiDAR resolution (32x32)
+    # --------------------------------------------------
+            first_depth_32 = F.adaptive_avg_pool2d(
+                first_depth.unsqueeze(0).unsqueeze(0),
+                (lidar_H, lidar_W)
+            ).squeeze(0).squeeze(0)   # (32, 32)
+
+    # --------------------------------------------------
+    # 3. Convert depth → histogram bin
+    # --------------------------------------------------
+            bin_width = (hist_far - hist_near) / num_bins
+
+            bin_idx = ((first_depth_32 - hist_near) / bin_width).floor().long()
+            bin_idx = bin_idx.clamp(0, num_bins - 1)
+
+    # --------------------------------------------------
+    # 4. Create transient tensor (one-hot first return)
+    # --------------------------------------------------
+            transi = torch.zeros((num_bins, lidar_H, lidar_W), device=device)
+
+            valid_pixels = first_depth_32 > 0
+            transi.scatter_(
+                0,
+                bin_idx.unsqueeze(0),
+                valid_pixels.float().unsqueeze(0)
+            )
+            
+            ###############################################
+            ###############################################
+
+
+            depth_histogram_downscaled = transi
 
           #  pdb.set_trace()
 
 
-            depth_histogram_downscaled = depth_histogram.view(
-                transi_bins, H_gt, scale_H, W_gt, scale_W
-            ).sum(dim=(2, 4)) 
+            #depth_histogram_downscaled = depth_histogram.view(
+             #   transi_bins, H_gt, scale_H, W_gt, scale_W
+            #).sum(dim=(2, 4)) 
 
 
-            pdb.set_trace()
+            #pdb.set_trace()
 
             #dh = depth_histogram  # tensor
 

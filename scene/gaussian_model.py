@@ -224,6 +224,10 @@ class GaussianModel:
         self._features_rest = nn.Parameter(features[:,:,1:].transpose(1, 2).contiguous().requires_grad_(True))
         self._scaling = nn.Parameter(scales.requires_grad_(True))
 
+
+#        pdb.set_trace()
+
+
         print("scaling")
         print(self._scaling)
         self._rotation = nn.Parameter(rots.requires_grad_(True))

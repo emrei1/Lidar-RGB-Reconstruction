@@ -85,9 +85,9 @@ class Scene:
 
 
         else:
-#            pdb.set_trace()
+  #          pdb.set_trace()
             self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent)
- #           pdb.set_trace()
+  #          pdb.set_trace()
   #          print('this'))
 
         self.gaussians.config.append(camera_lr > 0)

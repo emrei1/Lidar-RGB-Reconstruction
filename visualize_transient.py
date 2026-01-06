@@ -43,6 +43,17 @@ def visualize_depth_from_transi(gt_transi, output_dir="test/transient_depth"):
     expected_depth = (weights * bins).sum(dim=2)  # (H, W)
     expected_depth_norm = expected_depth / (expected_depth.max() + 1e-8)
 
+#    expected_depth_norm = gt.mean(dim=0)
+
+
+
+#    valid = gt_transi > 0
+
+ #   sum_depth = (gt_transi * valid).sum(dim=0)     # [H, W]
+  #  count     = valid.sum(dim=0).clamp_min(1)                # [H, W]
+
+   # expected_depth_norm = sum_depth / count
+
     save_image(expected_depth_norm.unsqueeze(0),
                f"{output_dir}/depth_expected.png")
     print(f"[Saved] Expected depth → {output_dir}/depth_expected.png")
@@ -62,12 +73,12 @@ def visualize_depth_from_transi(gt_transi, output_dir="test/transient_depth"):
     print(f"[Saved] Colorized depth → {output_dir}/depth_color.png")
 
 
-gt_transi = np.load("/workspace/Lidar-RGB-Reconstruction/depth_histogram_downscaled.npy")
+gt_transi = np.load("/workspace/Lidar-RGB-Reconstruction/transi.npy")
 
 
 #gt_transi = gt_transi.reshape((32, 32, 256))
 #arr = arr.reshape(256, 32, 32)
-gt_transi = torch.from_numpy(gt_transi.transpose(1, 2, 0).copy()).float()
+gt_transi = torch.from_numpy(gt_transi.transpose(1, 2, 0)).float()
 #gt_transi = gt_transi.transpose(0, 2, 1)
 
 
