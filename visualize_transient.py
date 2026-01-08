@@ -73,12 +73,12 @@ def visualize_depth_from_transi(gt_transi, output_dir="test/transient_depth"):
     print(f"[Saved] Colorized depth → {output_dir}/depth_color.png")
 
 
-gt_transi = np.load("/workspace/Lidar-RGB-Reconstruction/transi.npy")
+gt_transi = np.load("/workspace/Lidar-RGB-Reconstruction/MyUnityScene/transient/frame_0008_transient.npy")
 
 
 #gt_transi = gt_transi.reshape((32, 32, 256))
 #arr = arr.reshape(256, 32, 32)
-gt_transi = torch.from_numpy(gt_transi.transpose(1, 2, 0)).float()
+gt_transi = torch.from_numpy(gt_transi).float()
 #gt_transi = gt_transi.transpose(0, 2, 1)
 
 

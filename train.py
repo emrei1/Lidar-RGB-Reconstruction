@@ -69,7 +69,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset)
     
-    scene = Scene(dataset, gaussians, opt.camera_lr, shuffle=False, resolution_scales=[1, 2, 5])
+    scene = Scene(dataset, gaussians, opt.camera_lr, shuffle=False, resolution_scales=[1])
 
     transient_scale = torch.nn.Parameter(torch.tensor(1.0, device="cuda"))
 
@@ -141,14 +141,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         if iteration % 1000 == 0:
             gaussians.oneupSHdegree()
 
-        if iteration - 1 == 0:
-            scale = 5
-        elif iteration - 1 == 1000 + opt.transi_only_until:
-            scale = 2
-        elif iteration - 1 == 2000 + opt.transi_only_until:
-            scale = 1
-        if opt.scale_single == 1:
-            scale = 1
+        scale = 1
 
         # Pick a random camera
         if not viewpoint_stack:
@@ -161,6 +154,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
 #        viewpoint_cam.R = viewpoint_cam.R.T
        # viewpoint_cam_full_size = viewpoint_cam_fullsize.R.T
+
+
+      #  pdb.set_trace()
+
+
 
 
 #        pdb.set_trace()
@@ -301,8 +299,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             K, H, W = depth_buffer.shape
 
 
-            lidar_H = 32
-            lidar_W = 32
+            lidar_H = 128
+            lidar_W = 128
 
 
 
@@ -352,7 +350,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
             depth_histogram_downscaled = transi
 
-          #  pdb.set_trace()
+            
+            if iteration == 900:
+                pdb.set_trace()
 
 
             #depth_histogram_downscaled = depth_histogram.view(
@@ -688,7 +688,7 @@ def main():
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[5_000, 10_000, 15_000, 20_000, 25_000, 30_000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[950, 2000, 15_000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[1, 950, 2000, 15_000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)

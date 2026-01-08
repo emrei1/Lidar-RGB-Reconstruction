@@ -93,6 +93,9 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
         height = intr.height
         width = intr.width        
         
+
+        #pdb.set_trace()
+
         image_path = os.path.join(images_folder, os.path.basename(extr.name))
         image_name = os.path.basename(image_path).split(".")[0]
         # print(image_path)
