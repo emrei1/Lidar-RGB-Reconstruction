@@ -351,7 +351,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             depth_histogram_downscaled = transi
 
             
-            if iteration == 900:
+            if iteration == 1 or iteration == 900:
                 pdb.set_trace()
 
 
@@ -568,7 +568,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent)
 
             # densification 
-            if iteration > opt.transi_only_until:
+            if gaussians.get_xyz.shape[0] < opt.max_gaussians and iteration > opt.transi_only_until:
+                
+                pdb.set_trace()
+
                 gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
                 min_opac = 0.1
@@ -688,7 +691,7 @@ def main():
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
     parser.add_argument("--test_iterations", nargs="+", type=int, default=[5_000, 10_000, 15_000, 20_000, 25_000, 30_000])
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[1, 950, 2000, 15_000])
+    parser.add_argument("--save_iterations", nargs="+", type=int, default=[1, 950, 2500, 15_000])
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--checkpoint_iterations", nargs="+", type=int, default=[])
     parser.add_argument("--start_checkpoint", type=str, default = None)

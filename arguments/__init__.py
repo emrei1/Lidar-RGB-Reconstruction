@@ -83,6 +83,10 @@ class OptimizationParams(ParamGroup):
         self.lambda_dssim = 0.2
         self.densification_interval = 100
 
+
+        self.max_gaussians = 2500000
+
+
         # pruning params 
         self.opacity_reset_interval = 1000
         self.densify_from_iter = 200

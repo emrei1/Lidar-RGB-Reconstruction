@@ -705,7 +705,7 @@ renderCUDA(
 
 					float dL_dchannel = dL_dpixN[ch], dL_dalpha_normal = 0;
 					dL_dalpha_normal += (n_cur - accum_rec_n[ch]) * dL_dchannel;
-					atomicAdd(&(dL_dnormal[global_id * 3 + ch]), dchannel_dcolor * dL_dchannel * 10);
+					atomicAdd(&(dL_dnormal[global_id * 3 + ch]), dchannel_dcolor * dL_dchannel * 1);
 					dL_dalpha += dL_dalpha_normal;
 				}
 
