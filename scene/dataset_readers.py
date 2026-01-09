@@ -235,7 +235,7 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     ply_path = "MyUnityScene/sparse/0/points3D.ply" #os.path.join(path, "sparse/0/points3D.ply")
     bin_path = "MyUnityScene/sparse/0/points3D.bin"#os.path.join(path, "sparse/0/points3D.bin")
     txt_path = "MyUnityScene/sparse/0/points3D.txt"#os.path.join(path, "sparse/0/points3D.txt")
-    if True: #not os.path.exists(ply_path):
+    if not os.path.exists(ply_path):
         print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
         try:
             xyz, rgb, _ = read_points3D_binary("MyUnityScene/sparse/0/points3D.bin")

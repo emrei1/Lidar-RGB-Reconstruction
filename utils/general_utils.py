@@ -278,3 +278,55 @@ def poisson_mesh(path, vtx, normal, color, depth, thrsh):
     o3d.io.write_triangle_mesh(path + "_pruned.ply", smoothed)
 
     pbar.close()
+
+
+
+def poisson_mesh_pymesh(path, vtx, normal, color, depth, thrsh):
+
+    pbar = tqdm(total=4)
+    pbar.update(1)
+    pbar.set_description('Poisson meshing')
+
+    # create pcl with normal from sampled points
+    ms = pymeshlab.MeshSet()
+    pts = pymeshlab.Mesh(vtx.cpu().numpy(), [], normal.cpu().numpy())
+    ms.add_mesh(pts)
+
+
+    # poisson reconstruction
+    ms.generate_surface_reconstruction_screened_poisson(depth=depth, preclean=True, samplespernode=1.5)
+    vert = ms.current_mesh().vertex_matrix()
+    face = ms.current_mesh().face_matrix()
+    ms.save_current_mesh(path + '_plain.ply')
+
+
+    pbar.update(1)
+    pbar.set_description('Mesh refining')
+    # knn to compute distance and color of poisson-meshed points to sampled points
+    nn_dist, nn_idx, _ = knn_points(torch.from_numpy(vert).to(torch.float32).cuda()[None], vtx.cuda()[None], K=4)
+    nn_dist = nn_dist[0]
+    nn_idx = nn_idx[0]
+    nn_color = torch.mean(color[nn_idx], axis=1)
+
+    # create mesh with color and quality (distance to the closest sampled points)
+    vert_color = nn_color.clip(0, 1).cpu().numpy()
+    vert_color = np.concatenate([vert_color, np.ones_like(vert_color[:, :1])], 1)
+    ms.add_mesh(pymeshlab.Mesh(vert, face, v_color_matrix=vert_color, v_scalar_array=nn_dist[:, 0].cpu().numpy()))
+
+    pbar.update(1)
+    pbar.set_description('Mesh cleaning')
+    # prune outlying vertices and faces in poisson mesh
+    ms.compute_selection_by_condition_per_vertex(condselect=f"q>{thrsh}")
+    ms.meshing_remove_selected_vertices()
+
+    # fill holes
+    ms.meshing_close_holes(maxholesize=300)
+    ms.save_current_mesh(path + '_pruned.ply')
+
+    # smoothing, correct boundary aliasing due to pruning
+    ms.load_new_mesh(path + '_pruned.ply')
+    ms.apply_coord_laplacian_smoothing(stepsmoothnum=3, boundary=True)
+    ms.save_current_mesh(path + '_pruned.ply')
+    
+    pbar.update(1)
+    pbar.close()

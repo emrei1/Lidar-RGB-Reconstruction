@@ -81,7 +81,7 @@ class Scene:
                                                            "iteration_" + str(self.loaded_iter),
                                                            "point_cloud.ply"))
 
-            pdb.set_trace()
+#            pdb.set_trace()
 
 
         else:

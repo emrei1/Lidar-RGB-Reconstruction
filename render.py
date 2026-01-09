@@ -6,7 +6,7 @@ from tqdm import tqdm
 from os import makedirs
 from gaussian_renderer import render
 import torchvision
-from utils.general_utils import safe_state, poisson_mesh
+from utils.general_utils import safe_state, poisson_mesh, poisson_mesh_pymesh
 from utils.image_utils import psnr, depth2rgb, normal2rgb, depth2normal, match_depth, resample_points, mask_prune, grid_prune, depth2viewDir, img2video
 from utils.graphics_utils import getProjectionMatrix
 from utils.camera_utils import interpolate_camera
@@ -72,10 +72,10 @@ def render_set(model_path, use_mask, name, iteration, views, gaussians, pipeline
         d2n = depth2normal(depth, mask_vis, view)
 
         if name == 'train':
-            pts = resample_points(view, depth, normal, image, mask_vis * mask_gt * mask_clip)
-            grid_mask = grid_prune(occ_grid, grid_shift, grid_scale, grid_dim, pts[..., :3], thrsh=1)
+            pts = resample_points(view, depth, normal, image, mask_gt)
+            grid_mask = grid_prune(occ_grid, grid_shift, grid_scale, grid_dim, pts[..., :3], thrsh=0)
             clean_mask = grid_mask #* mask_mask
-            pts = pts[clean_mask]
+            #pts = pts[clean_mask]
             resampled.append(pts.cpu())
 
         if write_image:
@@ -109,7 +109,7 @@ def render_set(model_path, use_mask, name, iteration, views, gaussians, pipeline
     # -------------------------
     # ⭐ SAMPLE ONLY 30% OF POINTS
     # -------------------------
-        keep_fraction = 0.012
+        keep_fraction = 1
         N = resampled.shape[0]
         keep_N = int(N * keep_fraction)
 
@@ -130,7 +130,10 @@ def render_set(model_path, use_mask, name, iteration, views, gaussians, pipeline
     # [:3]  = xyz
     # [3:6] = normals
     # [6:]  = colors (or features)
-        poisson_mesh(
+        
+        pdb.set_trace()
+
+        poisson_mesh_pymesh(
             mesh_path,
             resampled[:, :3],
             resampled[:, 3:6],
