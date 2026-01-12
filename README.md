@@ -11,6 +11,6 @@ python train.py -s MyUnityScene --hist_far 20 --num_hist_bins 128 --transi_only_
 ## Mesh comparison
 
 Mesh comparison
-<p align="center"> <img src="ground_truth_scene_recording.gif" width="228" height="512" /> &nbsp;&nbsp;&nbsp; <img src="ground_truth_scene_recording.gif" width="228" height="512" /> </p> 
+<p align="center"> <img src="ground_truth_scene_recording.gif" width="456" height="1024" /> &nbsp;&nbsp;&nbsp; <img src="trimmed_reconstructed_mesh.gif" width="456" height="1024" /> </p> 
 
 
