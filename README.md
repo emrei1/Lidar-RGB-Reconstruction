@@ -1,4 +1,4 @@
-# Blurred LiDAR for Sharper 3D
+# LiDAR-RGB Reconstruction
 
 ---
 
