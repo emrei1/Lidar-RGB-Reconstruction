@@ -133,7 +133,7 @@ def render_set(model_path, use_mask, name, iteration, views, gaussians, pipeline
         
         pdb.set_trace()
 
-        poisson_mesh_pymesh(
+        poisson_mesh(
             mesh_path,
             resampled[:, :3],
             resampled[:, 3:6],

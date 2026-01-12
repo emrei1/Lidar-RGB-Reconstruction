@@ -260,24 +260,22 @@ def poisson_mesh(path, vtx, normal, color, depth, thrsh):
     pbar.update(1)
     pbar.set_description("Mesh cleaning")
 
-    # Remove vertices with large distance to samples
+
+# ---- PRUNING ----
     keep_mask = (nn_dist[:, 0].cpu().numpy() < thrsh)
 
-    # Create cleaned mesh
-    cleaned_mesh = mesh.select_by_index(np.where(keep_mask)[0])
+    idx = np.where(keep_mask)[0]
 
-    # Save pruned mesh
-    o3d.io.write_triangle_mesh(path + "_pruned.ply", cleaned_mesh)
+    cleaned_mesh = mesh # mesh.select_by_index(idx, cleanup=True)
 
-    ### ----- OPTIONAL SMOOTHING -----
+    mesh.vertex_colors = o3d.utility.Vector3dVector(nn_color)
 
-    pbar.update(1)
-    pbar.set_description("Smoothing")
+    o3d.io.write_triangle_mesh(
+        path + "_COLORED_DEBUG.ply",
+        mesh,
+        write_vertex_colors=True
+    )
 
-    smoothed = cleaned_mesh.filter_smooth_simple(number_of_iterations=3)
-    o3d.io.write_triangle_mesh(path + "_pruned.ply", smoothed)
-
-    pbar.close()
 
 
 

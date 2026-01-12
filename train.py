@@ -171,7 +171,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         patch_size = [float('inf'), float('inf')]
 
         # coarse to fine sampling 
-        render_pkg = render(viewpoint_cam, gaussians, pipe, background, patch_size, scaling_modifier = 0.05)
+        render_pkg = render(viewpoint_cam, gaussians, pipe, background, patch_size, scaling_modifier = 1)
         image, normal, depth, _, opac, _, viewspace_point_tensor, visibility_filter, radii = \
             render_pkg["render"], render_pkg["normal"], render_pkg["depth"], render_pkg["depth_buffer"], render_pkg["opac"], render_pkg["opac_buffer"], \
             render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg['radii']
@@ -564,8 +564,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
             if iteration % cull_every == 0 and iteration < opt.transi_only_until:
                 gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
-            pruned_data = gaussians.prune_large_gaussians(cull_over / opt.cull_over_transi_only)
-            gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent)
+                pruned_data = gaussians.prune_large_gaussians(cull_over / opt.cull_over_transi_only)
+                gaussians.densify_around_pruned_points(*pruned_data, scene.cameras_extent)
 
             # densification 
             if gaussians.get_xyz.shape[0] < opt.max_gaussians and iteration > opt.transi_only_until:
