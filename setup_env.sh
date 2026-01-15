@@ -4,6 +4,8 @@ set -e  # herhangi bir hata olursa script dursun
 
 echo "🔧 Python packages are installed..."
 
+mkdir test
+
 # Python 3 için pip kullan (en güvenlisi)
 pip install --upgrade pip
 pip install opencv-python
