@@ -2,6 +2,22 @@
 
 ---
 
+## 🚀 Getting Started
+
+### Install dependencies
+First, install the required Python dependencies by running:
+
+```bash
+./setup_env.sh
+```
+
+### Prepare sample reconstruction data
+To reconstruct and re-format the sample initial reconstruction used in this project, run:
+
+```bash
+./reformat_MyUnityScene.sh
+```
+
 ## 🖥️ Command line prompt
 
 ```bash
