@@ -14,8 +14,6 @@ pip install --ignore-install open3d
 pip install pymeshlab
 pip install plyfile
 pip install git+https://github.com/facebookresearch/pytorch3d.git --no-build-isolation
-git clone https://github.com/emrei1/Lidar-RGB-Reconstruction.git
-cd Lidar-RGB-Reconstruction
 cd submodules
 cd diff-gaussian-rasterization
 python setup.py install && pip install . --no-build-isolation
